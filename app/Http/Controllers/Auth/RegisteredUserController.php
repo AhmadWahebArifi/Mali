@@ -44,12 +44,12 @@ class RegisteredUserController extends Controller
             'last_name' => $request->last_name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'is_approved' => false, // New users need admin approval
         ]);
 
         event(new Registered($user));
 
-        Auth::login($user);
-
-        return redirect(RouteServiceProvider::HOME);
+        // Don't log in the user automatically - they need admin approval
+        return redirect()->route('login')->with('success', 'Registration successful! Your account is pending admin approval.');
     }
 }
