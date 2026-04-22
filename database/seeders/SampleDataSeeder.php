@@ -26,9 +26,8 @@ class SampleDataSeeder extends Seeder
 
         // Create sample accounts
         $accounts = [
-            ['name' => 'Chase Savings', 'balance' => 85240.00],
             ['name' => 'Cash on Hand', 'balance' => 2450.00],
-            ['name' => 'Amex Gold', 'balance' => -1240.34],
+            ['name' => 'HesabPay', 'balance' => 85240.00],
         ];
 
         foreach ($accounts as $accountData) {
@@ -55,9 +54,8 @@ class SampleDataSeeder extends Seeder
         }
 
         // Get the created accounts and categories
-        $chaseAccount = Account::where('name', 'Chase Savings')->first();
+        $hesabPayAccount = Account::where('name', 'HesabPay')->first();
         $cashAccount = Account::where('name', 'Cash on Hand')->first();
-        $amexAccount = Account::where('name', 'Amex Gold')->first();
 
         $salaryCategory = Category::where('name', 'Salary')->first();
         $foodCategory = Category::where('name', 'Food & Drink')->first();
@@ -72,7 +70,7 @@ class SampleDataSeeder extends Seeder
                 'amount' => 5.40,
                 'description' => 'Starbucks Coffee',
                 'date' => now(),
-                'account_id' => $chaseAccount->id,
+                'account_id' => $hesabPayAccount->id,
                 'category_id' => $foodCategory->id,
                 'created_by' => $user->id,
             ],
@@ -81,7 +79,7 @@ class SampleDataSeeder extends Seeder
                 'amount' => 142.00,
                 'description' => 'Electric Bill',
                 'date' => now()->subDay(),
-                'account_id' => $chaseAccount->id,
+                'account_id' => $hesabPayAccount->id,
                 'category_id' => $utilitiesCategory->id,
                 'created_by' => $user->id,
             ],
@@ -90,7 +88,7 @@ class SampleDataSeeder extends Seeder
                 'amount' => 6200.00,
                 'description' => 'TechCorp Salary',
                 'date' => now()->subDays(5),
-                'account_id' => $chaseAccount->id,
+                'account_id' => $hesabPayAccount->id,
                 'category_id' => $salaryCategory->id,
                 'created_by' => $user->id,
             ],
@@ -99,7 +97,7 @@ class SampleDataSeeder extends Seeder
                 'amount' => 999.00,
                 'description' => 'Apple Store',
                 'date' => now()->subDays(6),
-                'account_id' => $amexAccount->id,
+                'account_id' => $hesabPayAccount->id,
                 'category_id' => $electronicsCategory->id,
                 'created_by' => $user->id,
             ],
@@ -128,7 +126,7 @@ class SampleDataSeeder extends Seeder
                 'amount' => 6000 + rand(200, 800),
                 'description' => 'Monthly Salary',
                 'date' => $month->copy()->startOfMonth()->addDays(15),
-                'account_id' => $chaseAccount->id,
+                'account_id' => $hesabPayAccount->id,
                 'category_id' => $salaryCategory->id,
                 'created_by' => $user->id,
             ]);
@@ -140,7 +138,7 @@ class SampleDataSeeder extends Seeder
                     'amount' => rand(500, 2000),
                     'description' => 'Monthly Expense ' . ($j + 1),
                     'date' => $month->copy()->addDays($j * 10),
-                    'account_id' => $chaseAccount->id,
+                    'account_id' => $hesabPayAccount->id,
                     'category_id' => $foodCategory->id,
                     'created_by' => $user->id,
                 ]);

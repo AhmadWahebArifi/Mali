@@ -5,7 +5,7 @@
 @section('page-title', 'Accounts')
 
 @section('content')
-<div class="p-4 md:p-8 max-w-7xl mx-auto">
+<main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
     <!-- Summary Stats (Bento Style) -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div class="bg-white border border-outline-variant p-6 rounded-xl flex flex-col gap-1 shadow-sm">
@@ -111,3 +111,4 @@ function deleteAccount(id) {
 }
 </script>
 @endpush
+</main>

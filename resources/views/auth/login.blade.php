@@ -131,6 +131,14 @@
                     <p class="font-body-sm text-on-surface-variant">Access your dashboard and real-time analytics.</p>
                 </div>
                 
+                @if(session('success'))
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        FinTrackAlert.success('Success!', '{{ session('success') }}');
+                    });
+                </script>
+                @endif
+                
                 @if($errors->any())
                 <div class="bg-error-container text-on-error-container p-4 rounded-lg">
                     <div class="flex items-center gap-2">

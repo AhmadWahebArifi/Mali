@@ -5,7 +5,7 @@
 @section('page-title', 'Categories')
 
 @section('content')
-<div class="max-w-6xl mx-auto p-4 md:p-8">
+<main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
     <!-- Page Header Section -->
     <div class="mb-8">
         <h1 class="font-h1 text-h1 text-on-surface mb-2">Category Management</h1>
@@ -137,3 +137,4 @@ function toggleMobileSidebar() {
 }
 </script>
 @endpush
+</main>

@@ -5,31 +5,40 @@
 @section('page-title', 'Dashboard')
 
 @section('content')
-<!-- Dashboard Content -->
-<div class="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+<!-- Main Content -->
+<main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+    <!-- Success Message (using Sweet Alert) -->
+    @if(session('success'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            FinTrackAlert.success('Success!', '{{ session('success') }}');
+        });
+    </script>
+    @endif
+    
     <!-- Bento Grid - Row 1 -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Main Balance Card -->
-        <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 flex flex-col justify-between overflow-hidden relative min-h-[240px]">
+        <div class="lg:col-span-2 bg-white rounded-xl border border-outline-variant p-6 flex flex-col justify-between overflow-hidden relative min-h-[240px] shadow-sm">
             <div class="absolute top-0 right-0 p-8 opacity-10">
                 <span class="material-symbols-outlined text-[120px]" data-icon="account_balance_wallet">account_balance_wallet</span>
             </div>
             <div>
                 <div class="flex items-center justify-between mb-2">
-                    <span class="font-label-caps text-gray-500 uppercase">Total Net Worth</span>
+                    <span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Total Net Worth</span>
                     <span class="flex items-center gap-1 text-secondary font-semibold text-sm">
                         <span class="material-symbols-outlined text-sm" data-icon="trending_up">trending_up</span>
                         +12.4%
                     </span>
                 </div>
-                <h2 class="font-display-financial text-gray-900">${{ number_format($totalBalance, 2) }}</h2>
+                <h2 class="font-display-financial text-on-surface">${{ number_format($totalBalance, 2) }}</h2>
                 <div class="flex gap-4 mt-6">
                     <div class="flex-1 bg-secondary/5 rounded-lg p-3 border border-secondary/10">
-                        <p class="text-[10px] uppercase font-bold text-gray-400 mb-1">Monthly Income</p>
+                        <p class="text-[10px] uppercase font-bold text-on-surface-variant mb-1">Monthly Income</p>
                         <p class="text-secondary font-bold text-lg">+${{ number_format($monthlyIncome, 2) }}</p>
                     </div>
                     <div class="flex-1 bg-tertiary/5 rounded-lg p-3 border border-tertiary/10">
-                        <p class="text-[10px] uppercase font-bold text-gray-400 mb-1">Monthly Expenses</p>
+                        <p class="text-[10px] uppercase font-bold text-on-surface-variant mb-1">Monthly Expenses</p>
                         <p class="text-tertiary font-bold text-lg">-${{ number_format($monthlyExpenses, 2) }}</p>
                     </div>
                 </div>
@@ -149,18 +158,149 @@
         </div>
     </div>
 </div>
+
+<!-- Add Transaction Modal -->
+<div id="addTransactionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-md w-full p-6 relative">
+        <div class="flex items-center justify-between mb-6">
+            <h2 id="modalTitle" class="font-h1 text-h1 text-on-surface">Add Transaction</h2>
+            <button onclick="closeAddTransactionModal()" class="text-gray-400 hover:text-gray-600">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        
+        <form id="transactionForm" action="{{ route('transactions.store') }}" method="POST">
+            @csrf
+            <input type="hidden" id="transaction_type" name="type" value="">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-on-surface-variant mb-2">Description</label>
+                    <input type="text" name="description" required 
+                           class="w-full px-4 py-2 border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                           placeholder="Enter description">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-on-surface-variant mb-2">Amount</label>
+                    <input type="number" name="amount" step="0.01" required 
+                           class="w-full px-4 py-2 border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                           placeholder="0.00">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-on-surface-variant mb-2">Account</label>
+                    <select name="account_id" required 
+                            class="w-full px-4 py-2 border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        <option value="">Select Account</option>
+                        @foreach($accounts as $account)
+                        <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-on-surface-variant mb-2">Category</label>
+                    <select name="category_id" required 
+                            class="w-full px-4 py-2 border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        <option value="">Select Category</option>
+                        @foreach(App\Models\Category::all() as $category)
+                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-on-surface-variant mb-2">Date</label>
+                    <input type="date" name="date" required 
+                           class="w-full px-4 py-2 border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                           value="{{ now()->format('Y-m-d') }}">
+                </div>
+            </div>
+            
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="closeAddTransactionModal()" 
+                        class="flex-1 h-11 border border-outline-variant text-on-surface font-body-md font-semibold rounded-lg hover:bg-surface-container-low transition-all">
+                    Cancel
+                </button>
+                <button type="submit" id="submitButton"
+                        class="flex-1 h-11 bg-primary text-on-primary font-body-md font-semibold rounded-lg hover:bg-primary-container active:scale-[0.98] transition-all shadow-sm">
+                    Add Transaction
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script>
 function openAddTransactionModal(type) {
-    // Implementation for add transaction modal
-    console.log('Opening add transaction modal for type:', type);
+    const modal = document.getElementById('addTransactionModal');
+    const typeInput = document.getElementById('transaction_type');
+    const modalTitle = document.getElementById('modalTitle');
+    const submitButton = document.getElementById('submitButton');
+    
+    typeInput.value = type;
+    
+    if (type === 'income') {
+        modalTitle.textContent = 'Add Income';
+        submitButton.className = 'w-full h-11 bg-secondary text-on-secondary font-body-md font-semibold rounded-lg hover:bg-secondary-container active:scale-[0.98] transition-all shadow-sm';
+        submitButton.textContent = 'Add Income';
+    } else {
+        modalTitle.textContent = 'Add Expense';
+        submitButton.className = 'w-full h-11 bg-tertiary text-on-tertiary font-body-md font-semibold rounded-lg hover:bg-tertiary-container active:scale-[0.98] transition-all shadow-sm';
+        submitButton.textContent = 'Add Expense';
+    }
+    
+    modal.classList.remove('hidden');
 }
 
-function openAddAccountModal() {
-    // Implementation for add account modal
-    console.log('Opening add account modal');
+function closeAddTransactionModal() {
+    const modal = document.getElementById('addTransactionModal');
+    modal.classList.add('hidden');
+    document.getElementById('transactionForm').reset();
 }
+
+// Handle form submission with success feedback
+document.getElementById('transactionForm').addEventListener('submit', function(e) {
+    const submitButton = document.getElementById('submitButton');
+    const originalText = submitButton.textContent;
+    const formData = new FormData(this);
+    const type = formData.get('type');
+    const amount = formData.get('amount');
+    
+    // Show loading state
+    FinTrackAlert.loading('Adding Transaction...');
+    
+    // Submit form via fetch for better UX
+    e.preventDefault();
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success and close modal
+            FinTrackAlert.transactionSuccess(type, amount).then(() => {
+                closeAddTransactionModal();
+                // Reload page to show updated data
+                window.location.reload();
+            });
+        } else {
+            throw new Error(data.message || 'Failed to add transaction');
+        }
+    })
+    .catch(error => {
+        FinTrackAlert.error('Error', 'Failed to add transaction. Please try again.');
+        console.error('Error:', error);
+    });
+});
 </script>
 @endpush

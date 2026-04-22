@@ -23,7 +23,7 @@
             <span class="material-symbols-outlined" data-icon="swap_horiz">swap_horiz</span>
             Transactions
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-r-4 border-blue-600 transition-colors duration-200 ease-in-out font-medium text-sm {{ request()->routeIs('categories.*') ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-r-4 border-blue-600' : '' }}" href="{{ route('categories.index') }}">
+        <a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200 ease-in-out font-medium text-sm {{ request()->routeIs('categories.*') ? 'bg-gray-100 dark:bg-gray-800' : '' }}" href="{{ route('categories.index') }}">
             <span class="material-symbols-outlined" data-icon="category">category</span>
             Categories
         </a>
@@ -35,6 +35,12 @@
             <span class="material-symbols-outlined" data-icon="settings">settings</span>
             Settings
         </a>
+        @if(auth()->check() && auth()->user()->email === 'admin@mali.com')
+        <a class="flex items-center gap-3 px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200 ease-in-out font-medium text-sm {{ request()->routeIs('admin.*') ? 'bg-red-50 dark:bg-red-900/20' : '' }}" href="{{ route('admin.users.index') }}">
+            <span class="material-symbols-outlined" data-icon="admin_panel_settings">admin_panel_settings</span>
+            Admin Panel
+        </a>
+        @endif
     </nav>
     
     <button class="mt-auto w-full bg-primary text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:bg-primary-container transition-all">

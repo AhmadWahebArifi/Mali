@@ -19,7 +19,9 @@ use App\Models\Job;
     
 // }); short hand for this in below 
 
-Route::view('/' , 'home');
+Route::get('/', function () {
+    return redirect()->route('login');
+});
 
 // Index
 
@@ -65,3 +67,10 @@ Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 Route::get('/register', [AuthRegisteredUserController::class, 'create'])->name('register');
 Route::post('/register', [AuthRegisteredUserController::class, 'store']);
+
+// Admin Routes
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/users', [App\Http\Controllers\Admin\UserManagementController::class, 'index'])->name('users.index');
+    Route::post('/users/{user}/approve', [App\Http\Controllers\Admin\UserManagementController::class, 'approve'])->name('users.approve');
+    Route::post('/users/{user}/reject', [App\Http\Controllers\Admin\UserManagementController::class, 'reject'])->name('users.reject');
+});
