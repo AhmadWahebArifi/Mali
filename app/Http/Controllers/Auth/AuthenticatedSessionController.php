@@ -41,6 +41,14 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
+        // Check if user is approved
+        if (! Auth::user()->is_approved) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => __('Your account is pending admin approval.'),
+            ]);
+        }
+
         $request->session()->regenerate();
 
         return redirect()->intended(RouteServiceProvider::HOME);
