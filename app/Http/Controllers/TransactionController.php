@@ -64,8 +64,26 @@ class TransactionController extends Controller
             'created_by' => $user->id,
         ]);
 
-        return redirect()->route('transactions.index')
-            ->with('success', 'Transaction added successfully!');
+        // Check if request expects JSON (from fetch/AJAX)
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => ucfirst($validated['type']) . ' transaction added successfully!',
+                'transaction' => $transaction
+            ]);
+        }
+        
+        // Check if the request came from dashboard
+        $referer = $request->header('referer');
+        $redirectToDashboard = str_contains($referer, 'dashboard');
+        
+        if ($redirectToDashboard) {
+            return redirect()->route('dashboard')
+                ->with('success', ucfirst($validated['type']) . ' transaction added successfully!');
+        } else {
+            return redirect()->route('transactions.index')
+                ->with('success', 'Transaction added successfully!');
+        }
     }
 
     /**
