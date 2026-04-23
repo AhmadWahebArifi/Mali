@@ -5,7 +5,25 @@
 @section('page-title', 'Accounts')
 
 @section('content')
+<!-- Main Content -->
 <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+    <!-- Success Message (using Sweet Alert) -->
+    @if(session('success'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            FinTrackAlert.success('Success!', '{{ session('success') }}');
+        });
+    </script>
+    @endif
+
+    <!-- Error Message (using Sweet Alert) -->
+    @if(session('error'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            FinTrackAlert.error('Error', '{{ session('error') }}');
+        });
+    </script>
+    @endif
     <!-- Summary Stats (Bento Style) -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div class="bg-white border border-outline-variant p-6 rounded-xl flex flex-col gap-1 shadow-sm">
@@ -17,23 +35,23 @@
             </div>
         </div>
         
-        <div class="bg-white border border-outline-variant p-6 rounded-xl flex flex-col justify-center items-center gap-3 shadow-sm group hover:border-primary cursor-pointer transition-all">
+        <a href="{{ route('accounts.create') }}" class="bg-white border border-outline-variant p-6 rounded-xl flex flex-col justify-center items-center gap-3 shadow-sm group hover:border-primary cursor-pointer transition-all hover:bg-gray-50" onclick="console.log('Create account clicked');">
             <div class="w-12 h-12 bg-primary-container rounded-full flex items-center justify-center text-on-primary-container group-hover:scale-110 transition-transform">
                 <span class="material-symbols-outlined text-2xl">add</span>
             </div>
             <p class="font-label-caps text-label-caps text-primary">ADD NEW ACCOUNT</p>
-        </div>
+        </a>
         
-        <div class="md:col-span-2 bg-gradient-to-br from-primary to-primary-fixed-variant p-6 rounded-xl text-on-primary flex flex-col justify-between shadow-lg relative overflow-hidden">
+        <a href="{{ route('accounts.create') }}" class="md:col-span-2 bg-gradient-to-br from-primary to-primary-fixed-variant p-6 rounded-xl text-on-primary flex flex-col justify-between shadow-lg relative overflow-hidden hover:from-primary/90 hover:to-primary-fixed-variant/90 transition-all">
             <div class="relative z-10">
                 <p class="font-label-caps text-label-caps opacity-80">QUICK TIP</p>
                 <p class="font-body-md text-body-md mt-2 max-w-xs">Connecting your high-interest savings account could increase your projected annual yield by $120.</p>
             </div>
-            <button class="relative z-10 mt-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 rounded-lg py-2 px-4 text-sm font-semibold self-start transition-colors">
-                Learn More
-            </button>
+            <div class="relative z-10 mt-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 rounded-lg py-2 px-4 text-sm font-semibold self-start transition-colors inline-block">
+                Add Account Now
+            </div>
             <span class="absolute -right-8 -bottom-8 material-symbols-outlined text-9xl opacity-10">lightbulb</span>
-        </div>
+        </a>
     </div>
     
     <!-- Accounts Grid -->
@@ -53,10 +71,10 @@
                         </div>
                     </div>
                     <div class="flex gap-1">
-                        <button class="p-2 hover:bg-surface-container rounded-lg transition-colors text-outline">
+                        <button type="button" onclick="editAccount({{ $account->id }})" class="p-2 hover:bg-surface-container rounded-lg transition-colors text-outline">
                             <span class="material-symbols-outlined text-sm">edit</span>
                         </button>
-                        <button class="p-2 hover:bg-error-container hover:text-error rounded-lg transition-colors text-outline">
+                        <button type="button" onclick="deleteAccount({{ $account->id }})" class="p-2 hover:bg-error-container hover:text-error rounded-lg transition-colors text-outline">
                             <span class="material-symbols-outlined text-sm">delete</span>
                         </button>
                     </div>
@@ -78,7 +96,7 @@
         @endforelse
         
         <!-- Empty State / Add Card -->
-        <div class="border-2 border-dashed border-outline-variant rounded-xl p-6 flex flex-col items-center justify-center gap-4 hover:border-primary hover:bg-surface-container-low cursor-pointer transition-all group">
+        <a href="{{ route('accounts.create') }}" class="border-2 border-dashed border-outline-variant rounded-xl p-6 flex flex-col items-center justify-center gap-4 hover:border-primary hover:bg-surface-container-low cursor-pointer transition-all group hover:bg-gray-50">
             <div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-outline group-hover:text-primary">
                 <span class="material-symbols-outlined text-3xl">add</span>
             </div>
@@ -86,28 +104,157 @@
                 <p class="font-body-md font-bold text-on-surface-variant group-hover:text-primary">Add Another Account</p>
                 <p class="text-xs text-outline">Connect via Plaid or add manually</p>
             </div>
-        </div>
+        </a>
     </div>
 </div>
 @endsection
 
 @push('scripts')
 <script>
-function openAddAccountModal() {
-    // Implementation for add account modal
-    console.log('Opening add account modal');
-}
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Accounts page loaded');
+    console.log('FinTrackAlert available:', typeof FinTrackAlert !== 'undefined');
+    console.log('Swal available:', typeof Swal !== 'undefined');
+});
 
 function editAccount(id) {
-    // Implementation for edit account
-    console.log('Editing account:', id);
+    console.log('Edit account called with ID:', id);
+    
+    if (typeof FinTrackAlert === 'undefined') {
+        alert('FinTrackAlert is not loaded. Please refresh the page.');
+        return;
+    }
+    
+    FinTrackAlert.loading('Loading...');
+
+    fetch(`/accounts/${id}`, {
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success || !data.account) {
+            FinTrackAlert.error('Error', 'Failed to load account details');
+            return;
+        }
+
+        const account = data.account;
+
+        Swal.fire({
+            title: 'Edit Account',
+            html: `
+                <div style="text-align:left">
+                    <label style="display:block;font-weight:600;margin-bottom:6px">Account Name</label>
+                    <input id="swalAccountName" class="swal2-input" style="width:100%;margin:0 0 14px 0" value="${String(account.name ?? '').replace(/"/g, '&quot;')}">
+                    <label style="display:block;font-weight:600;margin-bottom:6px">Balance</label>
+                    <input id="swalAccountBalance" type="number" step="0.01" min="0" class="swal2-input" style="width:100%;margin:0" value="${account.balance ?? 0}">
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Save',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#004ccd',
+            preConfirm: () => {
+                const name = document.getElementById('swalAccountName').value.trim();
+                const balanceValue = document.getElementById('swalAccountBalance').value;
+                const balance = parseFloat(balanceValue);
+
+                if (!name) {
+                    Swal.showValidationMessage('Account name is required');
+                    return false;
+                }
+                if (Number.isNaN(balance) || balance < 0) {
+                    Swal.showValidationMessage('Balance must be a valid number (0 or more)');
+                    return false;
+                }
+
+                return { name, balance };
+            }
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+
+            FinTrackAlert.loading('Saving...');
+
+            const formData = new FormData();
+            formData.append('_method', 'PUT');
+            formData.append('name', result.value.name);
+            formData.append('balance', result.value.balance);
+
+            fetch(`/accounts/${id}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(async response => {
+                const json = await response.json().catch(() => ({}));
+                return { ok: response.ok, status: response.status, json };
+            })
+            .then(({ ok, status, json }) => {
+                if (ok && json.success) {
+                    FinTrackAlert.success('Success!', json.message || 'Account updated successfully').then(() => {
+                        location.reload();
+                    });
+                    return;
+                }
+
+                if (status === 422 && json.errors) {
+                    const firstField = Object.keys(json.errors)[0];
+                    const firstError = firstField ? json.errors[firstField][0] : 'Validation error';
+                    FinTrackAlert.error('Validation Error', firstError);
+                    return;
+                }
+
+                FinTrackAlert.error('Error', json.message || 'Failed to update account');
+            })
+            .catch(() => {
+                FinTrackAlert.error('Error', 'Failed to update account. Please try again.');
+            });
+        });
+    })
+    .catch(() => {
+        FinTrackAlert.error('Error', 'Failed to load account details');
+    });
 }
 
 function deleteAccount(id) {
-    // Implementation for delete account
-    if (confirm('Are you sure you want to delete this account?')) {
-        console.log('Deleting account:', id);
+    console.log('Delete account called with ID:', id);
+    
+    if (typeof FinTrackAlert === 'undefined') {
+        alert('FinTrackAlert is not loaded. Please refresh the page.');
+        return;
     }
+    
+    FinTrackAlert.deleteConfirm('this account').then((result) => {
+        if (result.isConfirmed) {
+            FinTrackAlert.loading('Deleting account...');
+            
+            fetch(`/accounts/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    FinTrackAlert.success('Success!', data.message).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    FinTrackAlert.error('Error', data.message || 'Failed to delete account');
+                }
+            })
+            .catch(error => {
+                FinTrackAlert.error('Error', 'Failed to delete account. Please try again.');
+                console.error('Error:', error);
+            });
+        }
+    });
 }
 </script>
 @endpush
