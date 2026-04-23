@@ -9,11 +9,6 @@ use Illuminate\Support\Facades\Auth;
 
 class UserManagementController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-    
     public function index()
     {
         // Only admin can access this
