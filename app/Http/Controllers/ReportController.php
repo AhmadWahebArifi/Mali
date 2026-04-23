@@ -69,34 +69,102 @@ class ReportController extends Controller
         $savingsGoalPercentage = min(round(($currentSavings / $savingsGoal) * 100), 100);
         
         // Category breakdown for expenses
-        $categoryExpenses = Transaction::join('categories', 'transactions.category_id', '=', 'categories.id')
+        $allCategoryExpenses = Transaction::join('categories', 'transactions.category_id', '=', 'categories.id')
             ->where('transactions.type', 'expense')
             ->whereMonth('transactions.date', now()->month)
             ->whereYear('transactions.date', now()->year)
             ->selectRaw('categories.name, SUM(transactions.amount) as total')
             ->groupBy('categories.name', 'categories.id')
             ->orderBy('total', 'desc')
-            ->limit(4)
             ->get();
         
-        $totalExpenses = $categoryExpenses->sum('total');
+        $totalExpenses = (float) $allCategoryExpenses->sum('total');
         $categoryBreakdown = [];
-        $colors = ['#004ccd', '#4edea3', '#ba1a1a', '#0f62fe'];
+        $colors = ['#004ccd', '#4edea3', '#ba1a1a', '#0f62fe', '#f59e0b'];
         $offset = 0;
+        $usedPercentage = 0;
+        $maxSlices = 5;
         
-        foreach ($categoryExpenses as $index => $category) {
-            $percentage = $totalExpenses > 0 ? round(($category->total / $totalExpenses) * 100) : 0;
+        foreach ($allCategoryExpenses as $index => $category) {
+            if ($index >= $maxSlices) break;
+            $rawPercentage = $totalExpenses > 0 ? ($category->total / $totalExpenses) * 100 : 0;
+            $percentage = round($rawPercentage);
+            // Ensure we don't exceed 100 with rounding
+            if ($usedPercentage + $percentage > 100 && $index < $allCategoryExpenses->count() - 1) {
+                $percentage = max(0, 100 - $usedPercentage);
+            }
             $categoryBreakdown[] = [
                 'name' => $category->name,
+                'amount' => (float) $category->total,
                 'percentage' => $percentage,
                 'color' => $colors[$index % count($colors)],
                 'offset' => -$offset,
             ];
-            $offset += $percentage;
+            $offset += $rawPercentage;
+            $usedPercentage += $percentage;
         }
         
-        // Account trends data
+        // Add "Other" slice if there are more categories
+        if ($allCategoryExpenses->count() > $maxSlices) {
+            $otherTotal = $allCategoryExpenses->slice($maxSlices)->sum('total');
+            $otherPercentage = max(0, 100 - $usedPercentage);
+            if ($otherPercentage > 0) {
+                $categoryBreakdown[] = [
+                    'name' => 'Other',
+                    'amount' => (float) $otherTotal,
+                    'percentage' => $otherPercentage,
+                    'color' => '#9ca3af',
+                    'offset' => -$offset,
+                ];
+            }
+        }
+        
+        // Account trends data - weekly cash flow for line chart
         $avgDailyBalance = Account::avg('balance');
+        
+        $weekDays = [];
+        $weeklyData = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $dayIncome = Transaction::where('type', 'income')
+                ->whereDate('date', $date)
+                ->sum('amount');
+            $dayExpense = Transaction::where('type', 'expense')
+                ->whereDate('date', $date)
+                ->sum('amount');
+            $weeklyData[] = (float) ($dayIncome - $dayExpense);
+            $weekDays[] = $date->format('D');
+        }
+        
+        // Normalize to 0-100 range for SVG path
+        $maxFlow = max(abs(max($weeklyData)), abs(min($weeklyData)), 1);
+        $svgPoints = [];
+        foreach ($weeklyData as $i => $val) {
+            $x = ($i / 6) * 400;
+            $y = 50 - (($val / $maxFlow) * 40); // center at 50, range 40
+            $svgPoints[] = [$x, $y];
+        }
+        
+        // Build SVG path
+        if (count($svgPoints) > 1) {
+            $first = $svgPoints[0];
+            $pathD = "M{$first[0]},{$first[1]}";
+            for ($i = 1; $i < count($svgPoints); $i++) {
+                $prev = $svgPoints[$i - 1];
+                $curr = $svgPoints[$i];
+                $cp1x = $prev[0] + ($curr[0] - $prev[0]) / 3;
+                $cp1y = $prev[1];
+                $cp2x = $curr[0] - ($curr[0] - $prev[0]) / 3;
+                $cp2y = $curr[1];
+                $pathD .= " C{$cp1x},{$cp1y} {$cp2x},{$cp2y} {$curr[0]},{$curr[1]}";
+            }
+            // Area fill path
+            $last = $svgPoints[count($svgPoints) - 1];
+            $areaD = $pathD . " V100 H{$first[0]} Z";
+        } else {
+            $pathD = "M0,50 L400,50";
+            $areaD = "M0,50 L400,50 V100 H0 Z";
+        }
         
         // Calculate real quarterly data for current year
         $quarterlyData = [];
@@ -134,7 +202,10 @@ class ReportController extends Controller
             'categoryBreakdown',
             'totalExpenses',
             'avgDailyBalance',
-            'quarterlyData'
+            'quarterlyData',
+            'weekDays',
+            'pathD',
+            'areaD'
         ));
     }
 }
