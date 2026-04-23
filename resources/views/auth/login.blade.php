@@ -134,7 +134,11 @@
                 @if(session('success'))
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
-                        FinTrackAlert.success('Success!', '{{ session('success') }}');
+                        if (typeof FinTrackAlert !== 'undefined') {
+                            FinTrackAlert.success('Success!', '{{ session('success') }}');
+                        } else {
+                            alert('{{ session('success') }}');
+                        }
                     });
                 </script>
                 @endif

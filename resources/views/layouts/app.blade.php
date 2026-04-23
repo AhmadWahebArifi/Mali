@@ -141,6 +141,20 @@
         if (typeof FinTrackAlert === 'undefined') {
             console.error('FinTrackAlert is not loaded');
         }
+        
+        // Profile dropdown toggle
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('hidden');
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function closeDropdown(e) {
+                if (!e.target.closest('.relative')) {
+                    dropdown.classList.add('hidden');
+                    document.removeEventListener('click', closeDropdown);
+                }
+            });
+        }
     </script>
     @stack('scripts')
 </body>

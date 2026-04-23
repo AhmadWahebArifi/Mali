@@ -75,3 +75,12 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/users/{user}/approve', [App\Http\Controllers\Admin\UserManagementController::class, 'approve'])->name('users.approve');
     Route::post('/users/{user}/reject', [App\Http\Controllers\Admin\UserManagementController::class, 'reject'])->name('users.reject');
 });
+
+// Additional Routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/faq', [App\Http\Controllers\FaqController::class, 'index'])->name('faq.index');
+    Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');
+    Route::get('/profile/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+});

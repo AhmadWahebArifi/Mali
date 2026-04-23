@@ -18,9 +18,13 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'first_name',
+        'last_name',
         'email',
         'password',
+        'is_approved',
+        'approved_at',
+        'approved_by',
     ];
 
     /**
@@ -42,8 +46,18 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'approved_at' => 'datetime',
+            'is_approved' => 'boolean',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Virtual name attribute for backward compatibility.
+     */
+    public function getNameAttribute(): string
+    {
+        return trim($this->first_name . ' ' . $this->last_name);
     }
 
     public function students(){
