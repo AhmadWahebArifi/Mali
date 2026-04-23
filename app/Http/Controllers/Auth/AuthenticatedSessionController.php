@@ -35,17 +35,17 @@ class AuthenticatedSessionController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+        // First check if user exists and their approval status
+        $user = \App\Models\User::where('email', $request->email)->first();
+        if ($user && isset($user->is_approved) && $user->is_approved === false) {
             throw ValidationException::withMessages([
-                'email' => __('These credentials do not match our records.'),
+                'email' => __('Your account is pending admin approval. Please wait for an administrator to approve your account.'),
             ]);
         }
 
-        // Check if user is approved
-        if (! Auth::user()->is_approved) {
-            Auth::logout();
+        if (! Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
             throw ValidationException::withMessages([
-                'email' => __('Your account is pending admin approval.'),
+                'email' => __('These credentials do not match our records.'),
             ]);
         }
 
