@@ -136,6 +136,12 @@
     @include('layouts.partials.bottom-nav')
     
     <script src="{{ asset('js/sweet-alert.js') }}"></script>
+    <script>
+        // Check if FinTrackAlert is loaded
+        if (typeof FinTrackAlert === 'undefined') {
+            console.error('FinTrackAlert is not loaded');
+        }
+    </script>
     @stack('scripts')
 </body>
 </html>
