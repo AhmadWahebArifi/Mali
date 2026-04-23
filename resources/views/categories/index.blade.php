@@ -6,6 +6,22 @@
 
 @section('content')
 <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+    <!-- SweetAlert Session Messages -->
+    @if(session('success'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            FinTrackAlert.success('Success!', '{{ session('success') }}');
+        });
+    </script>
+    @endif
+    @if(session('error'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            FinTrackAlert.error('Error', '{{ session('error') }}');
+        });
+    </script>
+    @endif
+
     <!-- Page Header Section -->
     <div class="mb-8">
         <h1 class="font-h1 text-h1 text-on-surface mb-2">Category Management</h1>
@@ -33,7 +49,7 @@
                 <div class="bg-white border border-outline-variant p-4 rounded-xl flex items-center justify-between hover:shadow-sm transition-all group">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-full bg-secondary-container/30 flex items-center justify-center text-on-secondary-container">
-                            <span class="material-symbols-outlined" data-icon="{{ $category->icon ?? 'payments' }}">{{ $category->icon ?? 'payments' }}</span>
+                            <span class="material-symbols-outlined" data-icon="payments">payments</span>
                         </div>
                         <div>
                             <h4 class="font-body-md font-semibold text-on-surface">{{ $category->name }}</h4>
@@ -41,10 +57,10 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button class="p-2 hover:bg-surface-container rounded-lg text-outline">
+                        <button type="button" onclick="editCategory({{ $category->id }})" class="p-2 hover:bg-surface-container rounded-lg text-outline">
                             <span class="material-symbols-outlined text-[20px]" data-icon="edit">edit</span>
                         </button>
-                        <button class="p-2 hover:bg-error-container/50 rounded-lg text-error">
+                        <button type="button" onclick="deleteCategory({{ $category->id }})" class="p-2 hover:bg-error-container/50 rounded-lg text-error">
                             <span class="material-symbols-outlined text-[20px]" data-icon="delete">delete</span>
                         </button>
                     </div>
@@ -77,7 +93,7 @@
                 <div class="bg-white border border-outline-variant p-4 rounded-xl flex items-center justify-between hover:shadow-sm transition-all group">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-full bg-tertiary-container/10 flex items-center justify-center text-tertiary">
-                            <span class="material-symbols-outlined" data-icon="{{ $category->icon ?? 'shopping_cart' }}">{{ $category->icon ?? 'shopping_cart' }}</span>
+                            <span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
                         </div>
                         <div>
                             <h4 class="font-body-md font-semibold text-on-surface">{{ $category->name }}</h4>
@@ -85,10 +101,10 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button class="p-2 hover:bg-surface-container rounded-lg text-outline">
+                        <button type="button" onclick="editCategory({{ $category->id }})" class="p-2 hover:bg-surface-container rounded-lg text-outline">
                             <span class="material-symbols-outlined text-[20px]" data-icon="edit">edit</span>
                         </button>
-                        <button class="p-2 hover:bg-error-container/50 rounded-lg text-error">
+                        <button type="button" onclick="deleteCategory({{ $category->id }})" class="p-2 hover:bg-error-container/50 rounded-lg text-error">
                             <span class="material-symbols-outlined text-[20px]" data-icon="delete">delete</span>
                         </button>
                     </div>
@@ -113,11 +129,11 @@
             </div>
             <div>
                 <p class="font-label-caps text-label-caps text-on-surface-variant mb-1">MOST USED (INC)</p>
-                <p class="text-3xl font-black text-secondary">{{ $mostUsedIncome ?? 'N/A' }}</p>
+                <p class="text-3xl font-black text-secondary">{{ $mostUsedIncome ? $mostUsedIncome->name : 'N/A' }}</p>
             </div>
             <div>
                 <p class="font-label-caps text-label-caps text-on-surface-variant mb-1">MOST USED (EXP)</p>
-                <p class="text-3xl font-black text-tertiary">{{ $mostUsedExpense ?? 'N/A' }}</p>
+                <p class="text-3xl font-black text-tertiary">{{ $mostUsedExpense ? $mostUsedExpense->name : 'N/A' }}</p>
             </div>
         </div>
     </div>
@@ -127,13 +143,198 @@
 @push('scripts')
 <script>
 function openAddCategoryModal(type) {
-    // Implementation for add category modal
-    console.log('Opening add category modal for type:', type);
+    if (typeof FinTrackAlert === 'undefined') {
+        alert('FinTrackAlert not loaded. Please refresh.');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Add ' + (type === 'income' ? 'Income' : 'Expense') + ' Category',
+        html: `
+            <div style="text-align:left">
+                <label style="display:block;font-weight:600;margin-bottom:6px">Category Name</label>
+                <input id="swalCategoryName" class="swal2-input" style="width:100%;margin:0 0 14px 0" placeholder="e.g. Salary, Rent, Groceries">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Create',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#004ccd',
+        preConfirm: () => {
+            const name = document.getElementById('swalCategoryName').value.trim();
+            if (!name) {
+                Swal.showValidationMessage('Category name is required');
+                return false;
+            }
+            return { name, type };
+        }
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        FinTrackAlert.loading('Creating category...');
+
+        const formData = new FormData();
+        formData.append('name', result.value.name);
+        formData.append('type', result.value.type);
+
+        fetch('{{ route('categories.store') }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(async response => {
+            const json = await response.json().catch(() => ({}));
+            return { ok: response.ok, status: response.status, json };
+        })
+        .then(({ ok, status, json }) => {
+            if (ok && json.success) {
+                FinTrackAlert.success('Success!', json.message || 'Category created successfully').then(() => {
+                    location.reload();
+                });
+                return;
+            }
+            if (status === 422 && json.errors) {
+                const firstField = Object.keys(json.errors)[0];
+                const firstError = firstField ? json.errors[firstField][0] : 'Validation error';
+                FinTrackAlert.error('Validation Error', firstError);
+                return;
+            }
+            FinTrackAlert.error('Error', json.message || 'Failed to create category');
+        })
+        .catch(() => {
+            FinTrackAlert.error('Error', 'Failed to create category. Please try again.');
+        });
+    });
 }
 
-function toggleMobileSidebar() {
-    // Implementation for mobile sidebar toggle
-    console.log('Toggling mobile sidebar');
+function editCategory(id) {
+    if (typeof FinTrackAlert === 'undefined') {
+        alert('FinTrackAlert not loaded. Please refresh.');
+        return;
+    }
+
+    FinTrackAlert.loading('Loading...');
+
+    fetch(`/categories/${id}`, {
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success || !data.category) {
+            FinTrackAlert.error('Error', 'Failed to load category details');
+            return;
+        }
+
+        const category = data.category;
+
+        Swal.fire({
+            title: 'Edit Category',
+            html: `
+                <div style="text-align:left">
+                    <label style="display:block;font-weight:600;margin-bottom:6px">Category Name</label>
+                    <input id="swalCategoryName" class="swal2-input" style="width:100%;margin:0 0 14px 0" value="${String(category.name ?? '').replace(/"/g, '&quot;')}">
+                    <label style="display:block;font-weight:600;margin-bottom:6px">Type</label>
+                    <select id="swalCategoryType" class="swal2-input" style="width:100%;margin:0">
+                        <option value="income" ${category.type === 'income' ? 'selected' : ''}>Income</option>
+                        <option value="expense" ${category.type === 'expense' ? 'selected' : ''}>Expense</option>
+                    </select>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Save',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#004ccd',
+            preConfirm: () => {
+                const name = document.getElementById('swalCategoryName').value.trim();
+                const type = document.getElementById('swalCategoryType').value;
+                if (!name) {
+                    Swal.showValidationMessage('Category name is required');
+                    return false;
+                }
+                return { name, type };
+            }
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+
+            FinTrackAlert.loading('Saving...');
+
+            const formData = new FormData();
+            formData.append('_method', 'PUT');
+            formData.append('name', result.value.name);
+            formData.append('type', result.value.type);
+
+            fetch(`/categories/${id}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(async response => {
+                const json = await response.json().catch(() => ({}));
+                return { ok: response.ok, status: response.status, json };
+            })
+            .then(({ ok, status, json }) => {
+                if (ok && json.success) {
+                    FinTrackAlert.success('Success!', json.message || 'Category updated successfully').then(() => {
+                        location.reload();
+                    });
+                    return;
+                }
+                if (status === 422 && json.errors) {
+                    const firstField = Object.keys(json.errors)[0];
+                    const firstError = firstField ? json.errors[firstField][0] : 'Validation error';
+                    FinTrackAlert.error('Validation Error', firstError);
+                    return;
+                }
+                FinTrackAlert.error('Error', json.message || 'Failed to update category');
+            })
+            .catch(() => {
+                FinTrackAlert.error('Error', 'Failed to update category. Please try again.');
+            });
+        });
+    })
+    .catch(() => {
+        FinTrackAlert.error('Error', 'Failed to load category details');
+    });
+}
+
+function deleteCategory(id) {
+    if (typeof FinTrackAlert === 'undefined') {
+        alert('FinTrackAlert not loaded. Please refresh.');
+        return;
+    }
+
+    FinTrackAlert.deleteConfirm('this category').then((result) => {
+        if (result.isConfirmed) {
+            FinTrackAlert.loading('Deleting category...');
+
+            fetch(`/categories/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    FinTrackAlert.success('Success!', data.message).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    FinTrackAlert.error('Error', data.message || 'Failed to delete category');
+                }
+            })
+            .catch(() => {
+                FinTrackAlert.error('Error', 'Failed to delete category. Please try again.');
+            });
+        }
+    });
 }
 </script>
 @endpush
