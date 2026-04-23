@@ -7,6 +7,14 @@
 @section('content')
 <!-- Main Content -->
 <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+    <!-- Success Message (using Sweet Alert) -->
+    @if(session('success'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            FinTrackAlert.success('Success!', '{{ session('success') }}');
+        });
+    </script>
+    @endif
     <!-- Screen Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
@@ -14,10 +22,10 @@
             <p class="font-body-md text-body-sm text-on-surface-variant">Review and manage your detailed financial activities.</p>
         </div>
         <div class="flex items-center gap-2">
-            <button class="flex items-center gap-2 px-4 py-2 border border-outline-variant bg-white text-on-surface rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors">
+            <a href="{{ route('transactions.export.csv', request()->query()) }}" class="flex items-center gap-2 px-4 py-2 border border-outline-variant bg-white text-on-surface rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors">
                 <span class="material-symbols-outlined text-sm" data-icon="file_download">file_download</span>
                 Export CSV
-            </button>
+            </a>
             <a href="{{ route('transactions.create') }}" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium text-sm hover:bg-primary-container transition-colors shadow-sm">
                 <span class="material-symbols-outlined text-sm" data-icon="add">add</span>
                 New Transaction
@@ -26,38 +34,38 @@
     </div>
     
     <!-- Filters Bar -->
-    <section class="bg-white p-4 rounded-xl border border-outline-variant mb-6 flex flex-wrap items-center gap-4">
+    <form method="GET" action="{{ route('transactions.index') }}" class="bg-white p-4 rounded-xl border border-outline-variant mb-6 flex flex-wrap items-center gap-4">
         <div class="flex items-center gap-2 min-w-[200px]">
             <span class="material-symbols-outlined text-outline text-lg" data-icon="calendar_today">calendar_today</span>
-            <select class="w-full border-none focus:ring-0 text-sm font-medium text-on-surface-variant bg-transparent cursor-pointer">
-                <option>Current Month</option>
-                <option>Last 30 Days</option>
-                <option>Last Quarter</option>
-                <option>Custom Range</option>
+            <select name="date_filter" class="w-full border-none focus:ring-0 text-sm font-medium text-on-surface-variant bg-transparent cursor-pointer" onchange="this.form.submit()">
+                <option value="">All Time</option>
+                <option value="current_month" {{ request('date_filter') == 'current_month' ? 'selected' : '' }}>Current Month</option>
+                <option value="last_30_days" {{ request('date_filter') == 'last_30_days' ? 'selected' : '' }}>Last 30 Days</option>
+                <option value="last_quarter" {{ request('date_filter') == 'last_quarter' ? 'selected' : '' }}>Last Quarter</option>
             </select>
         </div>
         <div class="h-6 w-px bg-outline-variant/50 hidden md:block"></div>
         <div class="flex items-center gap-2 min-w-[160px]">
             <span class="material-symbols-outlined text-outline text-lg" data-icon="account_balance_wallet">account_balance_wallet</span>
-            <select class="w-full border-none focus:ring-0 text-sm font-medium text-on-surface-variant bg-transparent cursor-pointer">
-                <option>All Accounts</option>
+            <select name="account_id" class="w-full border-none focus:ring-0 text-sm font-medium text-on-surface-variant bg-transparent cursor-pointer" onchange="this.form.submit()">
+                <option value="all">All Accounts</option>
                 @foreach($accounts as $account)
-                <option>{{ $account->name }}</option>
+                <option value="{{ $account->id }}" {{ request('account_id') == $account->id ? 'selected' : '' }}>{{ $account->name }}</option>
                 @endforeach
             </select>
         </div>
         <div class="h-6 w-px bg-outline-variant/50 hidden md:block"></div>
         <div class="flex items-center gap-2 min-w-[160px]">
             <span class="material-symbols-outlined text-outline text-lg" data-icon="filter_list">filter_list</span>
-            <select class="w-full border-none focus:ring-0 text-sm font-medium text-on-surface-variant bg-transparent cursor-pointer">
-                <option>All Categories</option>
+            <select name="category_id" class="w-full border-none focus:ring-0 text-sm font-medium text-on-surface-variant bg-transparent cursor-pointer" onchange="this.form.submit()">
+                <option value="all">All Categories</option>
                 @foreach($categories as $category)
-                <option>{{ $category->name }}</option>
+                <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
                 @endforeach
             </select>
         </div>
-        <button class="ml-auto text-primary text-sm font-semibold hover:underline">Clear all filters</button>
-    </section>
+        <button type="button" onclick="window.location.href='{{ route('transactions.index') }}'" class="ml-auto text-primary text-sm font-semibold hover:underline">Clear all filters</button>
+    </form>
     
     <!-- Transactions Table Card -->
     <div class="bg-white rounded-xl border border-outline-variant overflow-hidden">
@@ -124,8 +132,8 @@
                             </div>
                         </td>
                         <td class="py-4 px-6 text-right">
-                            <button class="p-1 text-outline opacity-0 group-hover:opacity-100 hover:text-on-surface transition-all" onclick="showTransactionMenu({{ $transaction->id }})">
-                                <span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+                            <button class="p-1 text-outline opacity-0 group-hover:opacity-100 hover:text-on-surface transition-all" onclick="deleteTransaction({{ $transaction->id }})">
+                                <span class="material-symbols-outlined" data-icon="delete">delete</span>
                             </button>
                         </td>
                     </tr>
@@ -145,26 +153,10 @@
         <!-- Pagination -->
         <div class="px-6 py-4 border-t border-outline-variant flex items-center justify-between">
             <div class="text-xs text-on-surface-variant font-medium">
-                Showing <span class="text-on-surface">1 - {{ $transactions->count() }}</span> of <span class="text-on-surface">{{ $totalTransactions }}</span> transactions
+                Showing <span class="text-on-surface">{{ $transactions->firstItem() }} - {{ $transactions->lastItem() }}</span> of <span class="text-on-surface">{{ $totalTransactions }}</span> transactions
             </div>
             <div class="flex items-center gap-1">
-                <button class="p-2 border border-outline-variant rounded hover:bg-surface-container-low transition-colors disabled:opacity-30" {{ $transactions->currentPage() == 1 ? 'disabled' : '' }}>
-                    <span class="material-symbols-outlined text-lg leading-none" data-icon="chevron_left">chevron_left</span>
-                </button>
-                @for($i = 1; $i <= min(5, $transactions->lastPage()); $i++)
-                <button class="w-8 h-8 flex items-center justify-center text-sm {{ $transactions->currentPage() == $i ? 'font-bold bg-primary text-white' : 'font-medium text-on-surface-variant hover:bg-surface-container-low' }} rounded">
-                    {{ $i }}
-                </button>
-                @endfor
-                @if($transactions->lastPage() > 5)
-                <div class="px-2 text-on-surface-variant">...</div>
-                <button class="w-8 h-8 flex items-center justify-center text-sm font-medium text-on-surface-variant hover:bg-surface-container-low rounded">
-                    {{ $transactions->lastPage() }}
-                </button>
-                @endif
-                <button class="p-2 border border-outline-variant rounded hover:bg-surface-container-low transition-colors" {{ $transactions->currentPage() == $transactions->lastPage() ? 'disabled' : '' }}>
-                    <span class="material-symbols-outlined text-lg leading-none" data-icon="chevron_right">chevron_right</span>
-                </button>
+                {{ $transactions->appends(request()->query())->links() }}
             </div>
         </div>
     </div>
@@ -181,14 +173,34 @@
 
 @push('scripts')
 <script>
-function openAddTransactionModal() {
-    // Implementation for add transaction modal
-    console.log('Opening add transaction modal');
-}
-
-function showTransactionMenu(id) {
-    // Implementation for transaction menu
-    console.log('Showing menu for transaction:', id);
+function deleteTransaction(id) {
+    FinTrackAlert.deleteConfirm('this transaction').then((result) => {
+        if (result.isConfirmed) {
+            FinTrackAlert.loading('Deleting...');
+            
+            fetch(`/transactions/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    FinTrackAlert.success('Success!', data.message).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    FinTrackAlert.error('Error', data.message || 'Failed to delete transaction');
+                }
+            })
+            .catch(error => {
+                FinTrackAlert.error('Error', 'Failed to delete transaction. Please try again.');
+                console.error('Error:', error);
+            });
+        }
+    });
 }
 
 // Select all checkbox functionality

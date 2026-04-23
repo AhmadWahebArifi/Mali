@@ -58,6 +58,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 Route::resource('categories', CategoryController::class);
 Route::resource('accounts', AccountController::class);
 Route::resource('transactions', TransactionController::class);
+Route::get('/transactions/export/csv', [TransactionController::class, 'exportCsv'])->name('transactions.export.csv');
 Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 Route::get('/settings', function() { return view('settings.index'); })->name('settings.index');
 

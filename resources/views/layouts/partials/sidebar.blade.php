@@ -42,9 +42,4 @@
         </a>
         @endif
     </nav>
-    
-    <button class="mt-auto w-full bg-primary text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:bg-primary-container transition-all">
-        <span class="material-symbols-outlined" data-icon="add">add</span>
-        Add Transaction
-    </button>
 </aside>

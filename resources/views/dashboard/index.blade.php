@@ -150,8 +150,9 @@
                 </div>
                 @empty
                 <div class="text-center py-8 text-gray-500">
-                    <span class="material-symbols-outlined text-4xl mb-2">receipt_long</span>
-                    <p>No transactions yet</p>
+                    <span class="material-symbols-outlined text-4xl mb-2">add_circle</span>
+                    <p class="font-medium mb-2">Start tracking your finances</p>
+                    <p class="text-sm">Add your first income or expense transaction to get started</p>
                 </div>
                 @endforelse
             </div>
