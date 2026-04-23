@@ -98,27 +98,31 @@ class ReportController extends Controller
         // Account trends data
         $avgDailyBalance = Account::avg('balance');
         
-        // Quarterly data
-        $quarterlyData = [
-            [
-                'name' => 'Q1 2024',
-                'revenue' => 45200,
-                'cost' => 12400,
-                'profit' => 32800,
-            ],
-            [
-                'name' => 'Q2 2024',
-                'revenue' => 51800,
-                'cost' => 15200,
-                'profit' => 36600,
-            ],
-            [
-                'name' => 'Q3 2024',
-                'revenue' => 38900,
-                'cost' => 22100,
-                'profit' => 16800,
-            ],
-        ];
+        // Calculate real quarterly data for current year
+        $quarterlyData = [];
+        $currentYear = now()->year;
+        for ($q = 1; $q <= 4; $q++) {
+            $startMonth = ($q - 1) * 3 + 1;
+            $endMonth = $startMonth + 2;
+            $revenue = Transaction::where('type', 'income')
+                ->whereYear('date', $currentYear)
+                ->whereMonth('date', '>=', $startMonth)
+                ->whereMonth('date', '<=', $endMonth)
+                ->sum('amount');
+            $cost = Transaction::where('type', 'expense')
+                ->whereYear('date', $currentYear)
+                ->whereMonth('date', '>=', $startMonth)
+                ->whereMonth('date', '<=', $endMonth)
+                ->sum('amount');
+            if ($revenue > 0 || $cost > 0) {
+                $quarterlyData[] = [
+                    'name' => "Q{$q} {$currentYear}",
+                    'revenue' => (float) $revenue,
+                    'cost' => (float) $cost,
+                    'profit' => (float) ($revenue - $cost),
+                ];
+            }
+        }
         
         return view('reports.index', compact(
             'monthlyData',
