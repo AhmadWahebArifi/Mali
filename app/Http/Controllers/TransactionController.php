@@ -6,22 +6,50 @@ use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\Account;
 use App\Models\Category;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TransactionController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $transactions = Transaction::with(['account', 'category'])
-            ->orderBy('date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate(25);
+        $query = Transaction::with(['account', 'category']);
+        
+        // Filter by date range
+        if ($request->filled('date_filter')) {
+            switch ($request->date_filter) {
+                case 'current_month':
+                    $query->whereMonth('date', now()->month)
+                          ->whereYear('date', now()->year);
+                    break;
+                case 'last_30_days':
+                    $query->where('date', '>=', now()->subDays(30));
+                    break;
+                case 'last_quarter':
+                    $query->where('date', '>=', now()->subMonths(3));
+                    break;
+            }
+        }
+        
+        // Filter by account
+        if ($request->filled('account_id') && $request->account_id != 'all') {
+            $query->where('account_id', $request->account_id);
+        }
+        
+        // Filter by category
+        if ($request->filled('category_id') && $request->category_id != 'all') {
+            $query->where('category_id', $request->category_id);
+        }
+        
+        $transactions = $query->orderBy('date', 'desc')
+                             ->orderBy('created_at', 'desc')
+                             ->paginate(25);
             
         $accounts = Account::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
-        $totalTransactions = Transaction::count();
+        $totalTransactions = $query->count();
         
         return view('transactions.index', compact('transactions', 'accounts', 'categories', 'totalTransactions'));
     }
@@ -63,6 +91,17 @@ class TransactionController extends Controller
             'description' => $validated['description'] ?? '',
             'created_by' => $user->id,
         ]);
+
+        // Update account balance
+        $account = Account::find($validated['account_id']);
+        if ($account) {
+            if ($validated['type'] === 'income') {
+                $account->balance += $validated['amount'];
+            } else {
+                $account->balance -= $validated['amount'];
+            }
+            $account->save();
+        }
 
         // Check if request expects JSON (from fetch/AJAX)
         if ($request->expectsJson()) {
@@ -115,6 +154,91 @@ class TransactionController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $transaction = Transaction::findOrFail($id);
+        
+        // Update account balance (reverse the transaction)
+        $account = Account::find($transaction->account_id);
+        if ($account) {
+            if ($transaction->type === 'income') {
+                $account->balance -= $transaction->amount;
+            } else {
+                $account->balance += $transaction->amount;
+            }
+            $account->save();
+        }
+        
+        $transaction->delete();
+        
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaction deleted successfully!'
+            ]);
+        }
+        
+        return redirect()->route('transactions.index')
+            ->with('success', 'Transaction deleted successfully!');
+    }
+
+    /**
+     * Export transactions to CSV
+     */
+    public function exportCsv(Request $request)
+    {
+        $query = Transaction::with(['account', 'category']);
+        
+        // Apply same filters as index method
+        if ($request->filled('date_filter')) {
+            switch ($request->date_filter) {
+                case 'current_month':
+                    $query->whereMonth('date', now()->month)
+                          ->whereYear('date', now()->year);
+                    break;
+                case 'last_30_days':
+                    $query->where('date', '>=', now()->subDays(30));
+                    break;
+                case 'last_quarter':
+                    $query->where('date', '>=', now()->subMonths(3));
+                    break;
+            }
+        }
+        
+        if ($request->filled('account_id') && $request->account_id != 'all') {
+            $query->where('account_id', $request->account_id);
+        }
+        
+        if ($request->filled('category_id') && $request->category_id != 'all') {
+            $query->where('category_id', $request->category_id);
+        }
+        
+        $transactions = $query->orderBy('date', 'desc')->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="transactions_' . date('Y-m-d') . '.csv"',
+        ];
+
+        $callback = function() use ($transactions) {
+            $file = fopen('php://output', 'w');
+            
+            // CSV header
+            fputcsv($file, ['Date', 'Description', 'Category', 'Type', 'Account', 'Amount']);
+            
+            // CSV data
+            foreach ($transactions as $transaction) {
+                fputcsv($file, [
+                    $transaction->date->format('Y-m-d'),
+                    $transaction->description,
+                    $transaction->category->name,
+                    ucfirst($transaction->type),
+                    $transaction->account->name,
+                    $transaction->amount
+                ]);
+            }
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }
