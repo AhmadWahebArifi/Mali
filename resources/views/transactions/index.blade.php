@@ -109,7 +109,7 @@
                         </td>
                         <td class="py-4 px-4">
                             <div class="font-data-mono text-data-mono text-on-surface">{{ $transaction->date->format('M d, Y') }}</div>
-                            <div class="text-[10px] text-on-surface-variant font-medium">{{ $transaction->date->format('h:i A') }}</div>
+                            <div class="text-[10px] text-on-surface-variant font-medium">{{ $transaction->created_at->format('h:i A') }}</div>
                         </td>
                         <td class="py-4 px-4">
                             <div class="font-medium text-on-surface text-sm">{{ $transaction->description }}</div>

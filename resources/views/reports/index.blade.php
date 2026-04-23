@@ -106,22 +106,23 @@
                     <span class="material-symbols-outlined text-gray-400" data-icon="more_vert">more_vert</span>
                 </button>
             </div>
+            @if($totalExpenses > 0)
             <div class="flex items-center gap-8">
                 <!-- Custom Pie Chart Representation -->
                 <div class="relative w-40 h-40">
                     <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                         <circle cx="18" cy="18" fill="transparent" r="15.915" stroke="#F3F4F6" stroke-width="3"></circle>
                         @foreach($categoryBreakdown as $index => $category)
-                        <circle cx="18" cy="18" fill="transparent" r="15.915" 
-                                stroke="{{ $category['color'] }}" 
-                                stroke-dasharray="{{ $category['percentage'] }} {{ 100 - $category['percentage'] }}" 
-                                stroke-dashoffset="{{ $category['offset'] }}" 
+                        <circle cx="18" cy="18" fill="transparent" r="15.915"
+                                stroke="{{ $category['color'] }}"
+                                stroke-dasharray="{{ $category['percentage'] }} {{ 100 - $category['percentage'] }}"
+                                stroke-dashoffset="{{ $category['offset'] }}"
                                 stroke-width="3"></circle>
                         @endforeach
                     </svg>
                     <div class="absolute inset-0 flex flex-col items-center justify-center">
                         <span class="text-[10px] text-gray-400 font-bold uppercase">Total</span>
-                        <span class="text-sm font-bold">${{ number_format($totalExpenses / 1000, 1) }}k</span>
+                        <span class="text-sm font-bold">${{ number_format($totalExpenses, 0) }}</span>
                     </div>
                 </div>
                 <div class="flex-1 space-y-3">
@@ -131,11 +132,20 @@
                             <div class="w-2 h-2 rounded-full" style="background-color: {{ $category['color'] }}"></div>
                             <span class="text-xs text-gray-600">{{ $category['name'] }}</span>
                         </div>
-                        <span class="text-xs font-bold">{{ $category['percentage'] }}%</span>
+                        <div class="text-right">
+                            <span class="text-xs font-bold block">{{ $category['percentage'] }}%</span>
+                            <span class="text-[10px] text-gray-400">${{ number_format($category['amount'], 0) }}</span>
+                        </div>
                     </div>
                     @endforeach
                 </div>
             </div>
+            @else
+            <div class="text-center py-8 text-gray-400">
+                <span class="material-symbols-outlined text-4xl mb-2">pie_chart</span>
+                <p class="text-sm">No expenses this month</p>
+            </div>
+            @endif
         </div>
         
         <!-- Account Trends Line Chart -->
@@ -151,10 +161,10 @@
                 </div>
             </div>
             <div class="h-40 relative mt-4">
-                <!-- Custom SVG Path for Line Chart -->
+                <!-- Dynamic SVG Line Chart from Real Transaction Data -->
                 <svg class="w-full h-full" preserveAspectRatio="none" viewBox="0 0 400 100">
-                    <path d="M0,80 Q50,70 100,50 T200,60 T300,30 T400,10" fill="none" stroke="#004ccd" stroke-linecap="round" stroke-width="3"></path>
-                    <path d="M0,80 Q50,70 100,50 T200,60 T300,30 T400,10 V100 H0 Z" fill="url(#gradient-blue)" opacity="0.1"></path>
+                    <path d="{{ $pathD }}" fill="none" stroke="#004ccd" stroke-linecap="round" stroke-width="3"></path>
+                    <path d="{{ $areaD }}" fill="url(#gradient-blue)" opacity="0.1"></path>
                     <defs>
                         <linearGradient id="gradient-blue" x1="0%" x2="0%" y1="0%" y2="100%">
                             <stop offset="0%" stop-color="#004ccd"></stop>
@@ -163,13 +173,9 @@
                     </defs>
                 </svg>
                 <div class="flex justify-between mt-4 text-[10px] font-bold text-gray-400">
-                    <span>MON</span>
-                    <span>TUE</span>
-                    <span>WED</span>
-                    <span>THU</span>
-                    <span>FRI</span>
-                    <span>SAT</span>
-                    <span>SUN</span>
+                    @foreach($weekDays as $day)
+                    <span>{{ $day }}</span>
+                    @endforeach
                 </div>
             </div>
             <div class="mt-8 flex items-center justify-between p-3 bg-surface-container-low rounded-lg">
@@ -197,32 +203,38 @@
                 <button class="text-sm font-semibold text-blue-600 hover:underline">View Detailed Statement</button>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left">
+                <table class="w-full">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Quarter</th>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Revenue</th>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Operating Cost</th>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Net Profit</th>
-                            <th class="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Trend</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Quarter</th>
+                            <th class="px-4 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Revenue</th>
+                            <th class="px-4 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Operating Cost</th>
+                            <th class="px-4 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Net Profit</th>
+                            <th class="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Trend</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @foreach($quarterlyData as $quarter)
+                        @forelse($quarterlyData as $quarter)
                         <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-6 py-4 font-bold text-sm text-on-surface">{{ $quarter['name'] }}</td>
-                            <td class="px-6 py-4 font-data-mono text-sm text-right">${{ number_format($quarter['revenue'], 2) }}</td>
-                            <td class="px-6 py-4 font-data-mono text-sm text-right">${{ number_format($quarter['cost'], 2) }}</td>
-                            <td class="px-6 py-4 font-data-mono text-sm text-right {{ $quarter['profit'] >= 0 ? 'text-secondary' : 'text-error' }} font-bold">
+                            <td class="px-4 py-3 font-bold text-sm text-on-surface">{{ $quarter['name'] }}</td>
+                            <td class="px-4 py-3 font-data-mono text-sm text-right">${{ number_format($quarter['revenue'], 2) }}</td>
+                            <td class="px-4 py-3 font-data-mono text-sm text-right">${{ number_format($quarter['cost'], 2) }}</td>
+                            <td class="px-4 py-3 font-data-mono text-sm text-right {{ $quarter['profit'] >= 0 ? 'text-secondary' : 'text-error' }} font-bold">
                                 {{ $quarter['profit'] >= 0 ? '+' : '' }}${{ number_format($quarter['profit'], 2) }}
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-3 text-center">
                                 <span class="material-symbols-outlined {{ $quarter['profit'] >= 0 ? 'text-secondary' : 'text-error' }}" data-icon="{{ $quarter['profit'] >= 0 ? 'trending_up' : 'trending_down' }}">
                                     {{ $quarter['profit'] >= 0 ? 'trending_up' : 'trending_down' }}
                                 </span>
                             </td>
                         </tr>
-                        @endforeach
+                        @empty
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-400 text-sm">
+                                No quarterly data available. Add transactions to generate reports.
+                            </td>
+                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
