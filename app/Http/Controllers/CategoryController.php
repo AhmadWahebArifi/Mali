@@ -12,11 +12,44 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        $incomeCategories = Category::where('type', 'income')->get();
-        $expenseCategories = Category::where('type', 'expense')->get();
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+        
+        // Get categories with transaction counts for current month
+        $incomeCategories = Category::where('type', 'income')
+            ->withCount(['transactions' => function($query) use ($currentMonth, $currentYear) {
+                $query->whereMonth('date', $currentMonth)
+                      ->whereYear('date', $currentYear);
+            }])
+            ->get();
+            
+        $expenseCategories = Category::where('type', 'expense')
+            ->withCount(['transactions' => function($query) use ($currentMonth, $currentYear) {
+                $query->whereMonth('date', $currentMonth)
+                      ->whereYear('date', $currentYear);
+            }])
+            ->get();
+        
         $totalCategories = Category::count();
         
-        return view('categories.index', compact('incomeCategories', 'expenseCategories', 'totalCategories'));
+        // Calculate most used categories
+        $mostUsedIncome = Category::where('type', 'income')
+            ->withCount('transactions')
+            ->orderBy('transactions_count', 'desc')
+            ->first();
+            
+        $mostUsedExpense = Category::where('type', 'expense')
+            ->withCount('transactions')
+            ->orderBy('transactions_count', 'desc')
+            ->first();
+        
+        return view('categories.index', compact(
+            'incomeCategories', 
+            'expenseCategories', 
+            'totalCategories',
+            'mostUsedIncome',
+            'mostUsedExpense'
+        ));
     }
 
     /**
@@ -32,7 +65,23 @@ class CategoryController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name',
+            'type' => 'required|in:income,expense',
+        ]);
+
+        $category = Category::create($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Category created successfully!',
+                'category' => $category
+            ]);
+        }
+
+        return redirect()->route('categories.index')
+            ->with('success', 'Category created successfully!');
     }
 
     /**
@@ -40,7 +89,16 @@ class CategoryController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $category = Category::findOrFail($id);
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'category' => $category,
+            ]);
+        }
+
+        return redirect()->route('categories.index');
     }
 
     /**
@@ -56,7 +114,25 @@ class CategoryController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $category = Category::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name,' . $id,
+            'type' => 'required|in:income,expense',
+        ]);
+
+        $category->update($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Category updated successfully!',
+                'category' => $category
+            ]);
+        }
+
+        return redirect()->route('categories.index')
+            ->with('success', 'Category updated successfully!');
     }
 
     /**
@@ -64,6 +140,31 @@ class CategoryController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $category = Category::findOrFail($id);
+
+        // Check if category has transactions
+        $transactionCount = $category->transactions()->count();
+        if ($transactionCount > 0) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Cannot delete category with {$transactionCount} transactions. Please delete or reassign transactions first."
+                ]);
+            }
+            return redirect()->route('categories.index')
+                ->with('error', "Cannot delete category with {$transactionCount} transactions. Please delete or reassign transactions first.");
+        }
+
+        $category->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Category deleted successfully!'
+            ]);
+        }
+
+        return redirect()->route('categories.index')
+            ->with('success', 'Category deleted successfully!');
     }
 }
