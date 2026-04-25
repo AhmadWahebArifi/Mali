@@ -92,22 +92,38 @@ class AccountController extends Controller
     public function update(Request $request, string $id)
     {
         $account = Account::findOrFail($id);
-
+        
+        // Check if user is admin for balance changes
+        $isAdmin = Auth::user()->email === 'admin@mali.com';
+        
         // Store old values for audit logging
         $oldValues = [
             'name' => $account->name,
             'balance' => $account->balance,
         ];
 
-        $validated = $request->validate([
+        // Different validation rules based on user role
+        $validationRules = [
             'name' => 'required|string|max:255|unique:accounts,name,' . $account->id,
-            'balance' => 'required|numeric|min:0',
-        ]);
+        ];
+        
+        // Only admin can change balance
+        if ($isAdmin) {
+            $validationRules['balance'] = 'required|numeric|min:0';
+        }
 
-        $account->update([
+        $validated = $request->validate($validationRules);
+
+        // Update account - only admin can change balance
+        $updateData = [
             'name' => $validated['name'],
-            'balance' => $validated['balance'],
-        ]);
+        ];
+        
+        if ($isAdmin) {
+            $updateData['balance'] = $validated['balance'];
+        }
+
+        $account->update($updateData);
 
         // Store new values for audit logging
         $newValues = [
