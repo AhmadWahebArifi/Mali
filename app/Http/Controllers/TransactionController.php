@@ -20,6 +20,12 @@ class TransactionController extends Controller
     {
         $query = Transaction::with(['account', 'category']);
         
+        // User-based filtering - non-admins can only see their own transactions
+        $isAdmin = Auth::user()->email === 'admin@mali.com';
+        if (!$isAdmin) {
+            $query->where('created_by', Auth::id());
+        }
+        
         // Filter by date range
         if ($request->filled('date_filter')) {
             switch ($request->date_filter) {
@@ -36,7 +42,7 @@ class TransactionController extends Controller
             }
         }
         
-        // Filter by account
+        // Filter by account (only show user's accounts for non-admins)
         if ($request->filled('account_id') && $request->account_id != 'all') {
             $query->where('account_id', $request->account_id);
         }
@@ -49,9 +55,11 @@ class TransactionController extends Controller
         $transactions = $query->orderBy('date', 'desc')
                              ->orderBy('created_at', 'desc')
                              ->paginate(25);
-            
+        
+        // Show all accounts for filtering, but transactions remain user-specific
         $accounts = Account::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
+        
         $totalTransactions = $query->count();
         
         return view('transactions.index', compact('transactions', 'accounts', 'categories', 'totalTransactions'));
@@ -62,6 +70,8 @@ class TransactionController extends Controller
      */
     public function create()
     {
+        // Show all accounts to all users for transaction creation
+        // Users can transact on any account, but transactions remain user-specific
         $accounts = Account::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         
@@ -82,8 +92,8 @@ class TransactionController extends Controller
             'description' => 'nullable|string|max:255',
         ]);
 
-        // Get the authenticated user (for now, we'll use the first user)
-        $user = \App\Models\User::first();
+        // Get the authenticated user
+        $user = Auth::user();
 
         $transaction = Transaction::create([
             'type' => $validated['type'],
@@ -163,6 +173,19 @@ class TransactionController extends Controller
     {
         $transaction = Transaction::findOrFail($id);
         
+        // User-based authorization - non-admins can only edit their own transactions
+        $isAdmin = Auth::user()->email === 'admin@mali.com';
+        if (!$isAdmin && $transaction->created_by !== Auth::id()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. You can only edit your own transactions.'
+                ], 403);
+            }
+            return redirect()->route('transactions.index')
+                ->with('error', 'Unauthorized. You can only edit your own transactions.');
+        }
+        
         // Store old values for audit logging
         $oldValues = [
             'type' => $transaction->type,
@@ -207,6 +230,19 @@ class TransactionController extends Controller
     {
         $transaction = Transaction::findOrFail($id);
         
+        // User-based authorization - non-admins can only delete their own transactions
+        $isAdmin = Auth::user()->email === 'admin@mali.com';
+        if (!$isAdmin && $transaction->created_by !== Auth::id()) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. You can only delete your own transactions.'
+                ], 403);
+            }
+            return redirect()->route('transactions.index')
+                ->with('error', 'Unauthorized. You can only delete your own transactions.');
+        }
+        
         // Log the transaction deletion before it's deleted
         LoggingService::logTransactionDelete($transaction);
         
@@ -240,6 +276,12 @@ class TransactionController extends Controller
     public function exportCsv(Request $request)
     {
         $query = Transaction::with(['account', 'category']);
+        
+        // User-based filtering - non-admins can only export their own transactions
+        $isAdmin = Auth::user()->email === 'admin@mali.com';
+        if (!$isAdmin) {
+            $query->where('created_by', Auth::id());
+        }
         
         // Apply same filters as index method
         if ($request->filled('date_filter')) {
