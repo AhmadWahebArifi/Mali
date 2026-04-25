@@ -10,7 +10,11 @@
         <!-- Notifications -->
         <a href="{{ route('notifications.index') }}" class="p-2 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-full transition-colors relative">
             <span class="material-symbols-outlined" data-icon="notifications">notifications</span>
-            <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            @if(auth()->user()->unreadNotifications()->count() > 0)
+            <span class="absolute top-1 right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                {{ auth()->user()->unreadNotifications()->count() > 9 ? '9+' : auth()->user()->unreadNotifications()->count() }}
+            </span>
+            @endif
         </a>
         
         <!-- FAQ -->

@@ -3,47 +3,86 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Notification;
 
 class NotificationController extends Controller
 {
     public function index()
     {
-        // Mock notifications data
-        $notifications = [
-            [
-                'id' => 1,
-                'title' => 'New transaction added',
-                'message' => 'Income of $1,500.00 has been added to Cash on Hand account',
-                'type' => 'success',
-                'time' => '2 minutes ago',
-                'read' => false
-            ],
-            [
-                'id' => 2,
-                'title' => 'Account balance low',
-                'message' => 'Your HesabPay account balance is below $100',
-                'type' => 'warning',
-                'time' => '1 hour ago',
-                'read' => false
-            ],
-            [
-                'id' => 3,
-                'title' => 'Monthly report ready',
-                'message' => 'Your April 2026 financial report is ready to view',
-                'type' => 'info',
-                'time' => '3 hours ago',
-                'read' => true
-            ],
-            [
-                'id' => 4,
-                'title' => 'Budget exceeded',
-                'message' => 'You have exceeded your Food & Dining budget by $200',
-                'type' => 'error',
-                'time' => '1 day ago',
-                'read' => true
-            ]
-        ];
+        $user = auth()->user();
+        
+        // Mark all notifications as read when viewing the page
+        $user->unreadNotifications()->update(['is_read' => true]);
+        
+        $notifications = $user->notifications()
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($notification) {
+                return [
+                    'id' => $notification->id,
+                    'title' => $notification->title,
+                    'message' => $notification->message,
+                    'type' => $notification->type,
+                    'time' => $notification->created_at->diffForHumans(),
+                    'read' => $notification->is_read,
+                    'data' => $notification->data
+                ];
+            });
         
         return view('notifications.index', compact('notifications'));
+    }
+
+    /**
+     * Mark notification as read
+     */
+    public function markAsRead($id)
+    {
+        $notification = Notification::findOrFail($id);
+        
+        // Only allow user to mark their own notifications as read
+        if ($notification->user_id !== auth()->id()) {
+            abort(403);
+        }
+        
+        $notification->markAsRead();
+        
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Mark all notifications as read
+     */
+    public function markAllAsRead()
+    {
+        auth()->user()->unreadNotifications()->update(['is_read' => true]);
+        
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Delete a notification
+     */
+    public function destroy($id)
+    {
+        $notification = Notification::findOrFail($id);
+        
+        // Only allow user to delete their own notifications
+        if ($notification->user_id !== auth()->id()) {
+            abort(403);
+        }
+        
+        $notification->delete();
+        
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Clear all notifications
+     */
+    public function clearAll()
+    {
+        auth()->user()->notifications()->delete();
+        
+        return response()->json(['success' => true]);
     }
 }

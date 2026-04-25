@@ -14,10 +14,10 @@
             <p class="font-body-md text-body-sm text-on-surface-variant">Stay updated with your financial activities.</p>
         </div>
         <div class="flex gap-2">
-            <button class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+            <button onclick="markAllAsRead()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
                 Mark all as read
             </button>
-            <button class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+            <button onclick="clearAllNotifications()" class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                 Clear all
             </button>
         </div>
@@ -67,11 +67,11 @@
                 <!-- Actions -->
                 <div class="flex items-center gap-2">
                     @if(!$notification['read'])
-                    <button class="p-1 text-gray-400 hover:text-gray-600 transition-colors" title="Mark as read">
+                    <button onclick="markAsRead({{ $notification['id'] }})" class="p-1 text-gray-400 hover:text-gray-600 transition-colors" title="Mark as read">
                         <span class="material-symbols-outlined text-lg">done</span>
                     </button>
                     @endif
-                    <button class="p-1 text-gray-400 hover:text-gray-600 transition-colors" title="Delete">
+                    <button onclick="deleteNotification({{ $notification['id'] }})" class="p-1 text-gray-400 hover:text-gray-600 transition-colors" title="Delete">
                         <span class="material-symbols-outlined text-lg">delete</span>
                     </button>
                 </div>
@@ -87,3 +87,79 @@
     </div>
 </main>
 @endsection
+
+@push('scripts')
+<script>
+function markAsRead(id) {
+    fetch(`/notifications/${id}/read`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function markAllAsRead() {
+    fetch('/notifications/read-all', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function deleteNotification(id) {
+    if (confirm('Are you sure you want to delete this notification?')) {
+        fetch(`/notifications/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+function clearAllNotifications() {
+    if (confirm('Are you sure you want to clear all notifications?')) {
+        fetch('/notifications/clear-all', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+</script>
+@endpush

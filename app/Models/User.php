@@ -64,6 +64,16 @@ class User extends Authenticatable
         return $this->hasMany(Student::class);
     }
 
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class)->orderBy('created_at', 'desc');
+    }
+
+    public function unreadNotifications()
+    {
+        return $this->notifications()->where('is_read', false);
+    }
+
     public function createdTransactions()
     {
         return $this->hasMany(Transaction::class, 'created_by');

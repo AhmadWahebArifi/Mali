@@ -72,6 +72,7 @@ Route::post('/register', [AuthRegisteredUserController::class, 'store']);
 // Admin Routes
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/users', [App\Http\Controllers\Admin\UserManagementController::class, 'index'])->name('users.index');
+    Route::get('/users/data', [App\Http\Controllers\Admin\UserManagementController::class, 'getUsersData'])->name('users.data');
     Route::post('/users/{user}/approve', [App\Http\Controllers\Admin\UserManagementController::class, 'approve'])->name('users.approve');
     Route::post('/users/{user}/reject', [App\Http\Controllers\Admin\UserManagementController::class, 'reject'])->name('users.reject');
 });
@@ -79,8 +80,21 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 // Additional Routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    Route::delete('/notifications/{id}', [App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::delete('/notifications/clear-all', [App\Http\Controllers\NotificationController::class, 'clearAll'])->name('notifications.clear-all');
     Route::get('/faq', [App\Http\Controllers\FaqController::class, 'index'])->name('faq.index');
     Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');
     Route::get('/profile/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'index'])->name('settings.index');
+    
+    // Reports Routes
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/annual-performance', [ReportController::class, 'annualPerformance'])->name('reports.annual-performance');
+    Route::get('/reports/yearly-comparison', [ReportController::class, 'yearlyComparison'])->name('reports.yearly-comparison');
+    Route::get('/reports/detailed-statement', [ReportController::class, 'detailedStatement'])->name('reports.detailed-statement');
+    Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
+    Route::get('/reports/export/csv', [ReportController::class, 'exportCsv'])->name('reports.export.csv');
 });

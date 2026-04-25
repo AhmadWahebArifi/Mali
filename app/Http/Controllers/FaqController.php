@@ -8,7 +8,7 @@ class FaqController extends Controller
 {
     public function index()
     {
-        $faqs = [
+        $faqs = collect([
             [
                 'question' => 'How do I add a new transaction?',
                 'answer' => 'Click the "Add Income" or "Add Expense" button on the dashboard, fill in the details including amount, category, and account, then click save.',
@@ -49,7 +49,7 @@ class FaqController extends Controller
                 'answer' => 'Net Cash Flow shows the difference between your total income and expenses for the current month. A positive number means you saved money that month.',
                 'category' => 'Reports'
             ]
-        ];
+        ]);
         
         return view('faq.index', compact('faqs'));
     }

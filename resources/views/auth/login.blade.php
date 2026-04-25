@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -134,11 +135,13 @@
                 @if(session('success'))
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
-                        if (typeof FinTrackAlert !== 'undefined') {
-                            FinTrackAlert.success('Success!', '{{ session('success') }}');
-                        } else {
-                            alert('{{ session('success') }}');
-                        }
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Registration Successful!',
+                            text: '{{ session('success') }}',
+                            confirmButtonColor: '#004ccd',
+                            confirmButtonText: 'Got it!'
+                        });
                     });
                 </script>
                 @endif
@@ -218,29 +221,68 @@
                     <h1 class="font-h1 text-h1 text-on-surface">Create Account</h1>
                     <p class="font-body-sm text-on-surface-variant">Join 5,000+ businesses managing assets on FinTrack.</p>
                 </div>
-                <form class="space-y-4">
+                <form method="POST" action="{{ route('register') }}" class="space-y-4">
+                    @csrf
                     <div class="space-y-1">
                         <label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Full Name</label>
-                        <input class="w-full h-11 px-4 rounded-lg border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary-container bg-surface-container-lowest transition-all outline-none text-md" placeholder="John Doe" type="text"/>
+                        <div class="grid grid-cols-2 gap-4">
+                            <input 
+                                name="first_name"
+                                class="w-full h-11 px-4 rounded-lg border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary-container bg-surface-container-lowest transition-all outline-none text-md @error('first_name') border-error @enderror" 
+                                placeholder="First Name" 
+                                type="text"
+                                value="{{ old('first_name') }}"
+                                required>
+                            <input 
+                                name="last_name"
+                                class="w-full h-11 px-4 rounded-lg border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary-container bg-surface-container-lowest transition-all outline-none text-md @error('last_name') border-error @enderror" 
+                                placeholder="Last Name" 
+                                type="text"
+                                value="{{ old('last_name') }}"
+                                required>
+                        </div>
                     </div>
                     <div class="space-y-1">
                         <label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Work Email</label>
-                        <input class="w-full h-11 px-4 rounded-lg border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary-container bg-surface-container-lowest transition-all outline-none text-md" placeholder="john@enterprise.com" type="email"/>
+                        <input 
+                            name="email"
+                            class="w-full h-11 px-4 rounded-lg border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary-container bg-surface-container-lowest transition-all outline-none text-md @error('email') border-error @enderror" 
+                            placeholder="john@enterprise.com" 
+                            type="email"
+                            value="{{ old('email') }}"
+                            required>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="space-y-1">
                             <label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Password</label>
-                            <input class="w-full h-11 px-4 rounded-lg border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary-container bg-surface-container-lowest transition-all outline-none text-md" placeholder="••••••••" type="password"/>
+                            <input 
+                                name="password"
+                                class="w-full h-11 px-4 rounded-lg border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary-container bg-surface-container-lowest transition-all outline-none text-md @error('password') border-error @enderror" 
+                                placeholder="••••••••" 
+                                type="password"
+                                required>
                         </div>
                         <div class="space-y-1">
                             <label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Confirm</label>
-                            <input class="w-full h-11 px-4 rounded-lg border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary-container bg-surface-container-lowest transition-all outline-none text-md" placeholder="••••••••" type="password"/>
+                            <input 
+                                name="password_confirmation"
+                                class="w-full h-11 px-4 rounded-lg border border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary-container bg-surface-container-lowest transition-all outline-none text-md @error('password_confirmation') border-error @enderror" 
+                                placeholder="••••••••" 
+                                type="password"
+                                required>
                         </div>
                     </div>
                     <button class="w-full h-11 bg-primary text-on-primary font-body-md font-semibold rounded-lg hover:bg-primary-container active:scale-[0.98] transition-all shadow-sm" type="submit">
                         Register Business
                     </button>
                 </form>
+                
+                <div class="pt-4 border-t border-outline-variant text-center">
+                    <p class="font-body-sm text-on-surface-variant">
+                        Already have an account? 
+                        <a class="font-body-sm text-primary font-semibold hover:underline" href="#login">Back to login</a>
+                    </p>
+                </div>
             </section>
         </div>
     </div>
@@ -328,6 +370,15 @@ document.querySelectorAll('a[href="#register"]').forEach(link => {
         e.preventDefault();
         document.querySelector('section:not([id="register"])').classList.add('hidden');
         document.getElementById('register').classList.remove('hidden');
+    });
+});
+
+// Handle "Back to login" link
+document.querySelectorAll('a[href="#login"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('register').classList.add('hidden');
+        document.querySelector('section:not([id="register"])').classList.remove('hidden');
     });
 });
 

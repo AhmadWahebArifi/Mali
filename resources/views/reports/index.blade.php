@@ -14,19 +14,125 @@
             <h1 class="font-h1 text-h1 text-on-surface">Financial Reports</h1>
         </div>
         <div class="flex items-center gap-2">
-            <button class="flex items-center gap-2 px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-medium hover:bg-surface-container-low transition-colors">
-                <span class="material-symbols-outlined text-sm" data-icon="ios_share">ios_share</span>
-                Export PDF
-            </button>
-            <button class="flex items-center gap-2 px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-medium hover:bg-surface-container-low transition-colors">
-                <span class="material-symbols-outlined text-sm" data-icon="download">download</span>
-                Export CSV
-            </button>
-            <button class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">
+            <form id="exportForm" method="GET" action="{{ route('reports.export.pdf') }}" class="contents">
+                <input type="hidden" name="start_date" id="filter_start_date" value="{{ now()->subMonths(6)->format('Y-m-d') }}">
+                <input type="hidden" name="end_date" id="filter_end_date" value="{{ now()->format('Y-m-d') }}">
+                <input type="hidden" name="category_id" id="filter_category_id">
+                <input type="hidden" name="account_id" id="filter_account_id">
+                <input type="hidden" name="type" id="filter_type">
+                <button type="submit" onclick="this.form.action='{{ route('reports.export.pdf') }}'" class="flex items-center gap-2 px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-medium hover:bg-surface-container-low transition-colors">
+                    <span class="material-symbols-outlined text-sm" data-icon="ios_share">ios_share</span>
+                    Export PDF
+                </button>
+                <button type="submit" onclick="this.form.action='{{ route('reports.export.csv') }}'" class="flex items-center gap-2 px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-medium hover:bg-surface-container-low transition-colors">
+                    <span class="material-symbols-outlined text-sm" data-icon="download">download</span>
+                    Export CSV
+                </button>
+            </form>
+            <button onclick="toggleFilters()" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">
                 <span class="material-symbols-outlined text-sm" data-icon="filter_list">filter_list</span>
                 Filters
             </button>
         </div>
+    </div>
+    
+    <!-- Filters Panel (Hidden by default) -->
+    <div id="filtersPanel" class="hidden bg-white p-6 rounded-xl border border-outline-variant shadow-sm mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-h2 text-lg text-on-surface">Filter Reports</h3>
+            <button onclick="toggleFilters()" class="text-gray-400 hover:text-gray-600">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        
+        <form id="filterForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                <input type="date" name="start_date" id="start_date" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                       value="{{ now()->subMonths(6)->format('Y-m-d') }}">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                <input type="date" name="end_date" id="end_date" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                       value="{{ now()->format('Y-m-d') }}">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select name="category_id" id="category_id" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Categories</option>
+                    @foreach(\App\Models\Category::orderBy('name')->get() as $category)
+                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Account</label>
+                <select name="account_id" id="account_id" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Accounts</option>
+                    @foreach(\App\Models\Account::orderBy('name')->get() as $account)
+                    <option value="{{ $account->id }}">{{ $account->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Transaction Type</label>
+                <select name="type" id="type" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Types</option>
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                </select>
+            </div>
+            
+            <div class="flex items-end gap-2">
+                <button type="button" onclick="applyFilters()" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    Apply Filters
+                </button>
+                <button type="button" onclick="clearFilters()" 
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                    Clear
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Quick Navigation -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <a href="{{ route('reports.annual-performance') }}" 
+           class="flex items-center gap-4 p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200 hover:from-blue-100 hover:to-blue-200 transition-all">
+            <span class="material-symbols-outlined text-3xl text-blue-600">assessment</span>
+            <div>
+                <h3 class="font-semibold text-blue-900 mb-1">Annual Performance</h3>
+                <p class="text-sm text-blue-700">Current year detailed analysis and metrics</p>
+            </div>
+        </a>
+        
+        <a href="{{ route('reports.yearly-comparison') }}" 
+           class="flex items-center gap-4 p-6 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200 hover:from-green-100 hover:to-green-200 transition-all">
+            <span class="material-symbols-outlined text-3xl text-green-600">trending_up</span>
+            <div>
+                <h3 class="font-semibold text-green-900 mb-1">Yearly Comparison</h3>
+                <p class="text-sm text-green-700">5-year performance comparison and trends</p>
+            </div>
+        </a>
+        
+        <a href="{{ route('reports.detailed-statement') }}" 
+           class="flex items-center gap-4 p-6 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl border border-purple-200 hover:from-purple-100 hover:to-purple-200 transition-all">
+            <span class="material-symbols-outlined text-3xl text-purple-600">description</span>
+            <div>
+                <h3 class="font-semibold text-purple-900 mb-1">Detailed Statement</h3>
+                <p class="text-sm text-purple-700">Complete financial statement with breakdowns</p>
+            </div>
+        </a>
     </div>
     
     <!-- Bento Grid Layout -->
@@ -200,7 +306,7 @@
                     <h3 class="font-label-caps text-label-caps text-gray-500 uppercase tracking-widest mb-1">Annual Performance</h3>
                     <p class="font-h2 text-lg text-on-surface">Yearly Overview Comparison</p>
                 </div>
-                <button class="text-sm font-semibold text-blue-600 hover:underline">View Detailed Statement</button>
+                <a href="{{ route('reports.detailed-statement') }}" class="text-sm font-semibold text-blue-600 hover:underline">View Detailed Statement</a>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full">
@@ -242,3 +348,84 @@
     </div>
 </main>
 @endsection
+
+@push('scripts')
+<script>
+function toggleFilters() {
+    const panel = document.getElementById('filtersPanel');
+    panel.classList.toggle('hidden');
+}
+
+function applyFilters() {
+    // Update hidden form fields for export
+    document.getElementById('filter_start_date').value = document.getElementById('start_date').value;
+    document.getElementById('filter_end_date').value = document.getElementById('end_date').value;
+    document.getElementById('filter_category_id').value = document.getElementById('category_id').value;
+    document.getElementById('filter_account_id').value = document.getElementById('account_id').value;
+    document.getElementById('filter_type').value = document.getElementById('type').value;
+    
+    // Show loading state
+    Swal.fire({
+        title: 'Applying Filters...',
+        text: 'Please wait',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    // Reload page with filters
+    const params = new URLSearchParams();
+    params.set('start_date', document.getElementById('start_date').value);
+    params.set('end_date', document.getElementById('end_date').value);
+    
+    if (document.getElementById('category_id').value) {
+        params.set('category_id', document.getElementById('category_id').value);
+    }
+    if (document.getElementById('account_id').value) {
+        params.set('account_id', document.getElementById('account_id').value);
+    }
+    if (document.getElementById('type').value) {
+        params.set('type', document.getElementById('type').value);
+    }
+    
+    window.location.href = '{{ route("reports.index") }}?' + params.toString();
+}
+
+function clearFilters() {
+    document.getElementById('start_date').value = '{{ now()->subMonths(6)->format('Y-m-d') }}';
+    document.getElementById('end_date').value = '{{ now()->format('Y-m-d') }}';
+    document.getElementById('category_id').value = '';
+    document.getElementById('account_id').value = '';
+    document.getElementById('type').value = '';
+    
+    applyFilters();
+}
+
+// Load filters from URL parameters on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const params = new URLSearchParams(window.location.search);
+    
+    if (params.has('start_date')) {
+        document.getElementById('start_date').value = params.get('start_date');
+        document.getElementById('filter_start_date').value = params.get('start_date');
+    }
+    if (params.has('end_date')) {
+        document.getElementById('end_date').value = params.get('end_date');
+        document.getElementById('filter_end_date').value = params.get('end_date');
+    }
+    if (params.has('category_id')) {
+        document.getElementById('category_id').value = params.get('category_id');
+        document.getElementById('filter_category_id').value = params.get('category_id');
+    }
+    if (params.has('account_id')) {
+        document.getElementById('account_id').value = params.get('account_id');
+        document.getElementById('filter_account_id').value = params.get('account_id');
+    }
+    if (params.has('type')) {
+        document.getElementById('type').value = params.get('type');
+        document.getElementById('filter_type').value = params.get('type');
+    }
+});
+</script>
+@endpush

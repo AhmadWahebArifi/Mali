@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\Account;
 use App\Models\Category;
+use App\Models\Notification;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TransactionController extends Controller
@@ -101,6 +102,38 @@ class TransactionController extends Controller
                 $account->balance -= $validated['amount'];
             }
             $account->save();
+        }
+
+        // Create notification for the transaction
+        $title = ucfirst($validated['type']) . ' Transaction Added';
+        $message = ucfirst($validated['type']) . ' of $' . number_format($validated['amount'], 2) . ' has been added to ' . $account->name . ' account';
+        $type = $validated['type'] === 'income' ? 'success' : 'info';
+        
+        Notification::createForUser(
+            $user->id,
+            $title,
+            $message,
+            $type,
+            [
+                'transaction_id' => $transaction->id,
+                'account_id' => $account->id,
+                'amount' => $validated['amount'],
+                'type' => $validated['type']
+            ]
+        );
+
+        // Check for low balance warning
+        if ($account->balance < 100 && $validated['type'] === 'expense') {
+            Notification::createForUser(
+                $user->id,
+                'Account Balance Low',
+                'Your ' . $account->name . ' account balance is below $100',
+                'warning',
+                [
+                    'account_id' => $account->id,
+                    'balance' => $account->balance
+                ]
+            );
         }
 
         // Check if request expects JSON (from fetch/AJAX)

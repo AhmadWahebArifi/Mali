@@ -184,7 +184,7 @@
                 
                 <div>
                     <label class="block text-sm font-medium text-on-surface-variant mb-2">Amount</label>
-                    <input type="number" name="amount" step="0.01" required 
+                    <input type="number" name="amount" step="0.01" min="0.01" required 
                            class="w-full px-4 py-2 border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                            placeholder="0.00">
                 </div>
@@ -267,41 +267,15 @@ function closeAddTransactionModal() {
 document.getElementById('transactionForm').addEventListener('submit', function(e) {
     const submitButton = document.getElementById('submitButton');
     const originalText = submitButton.textContent;
-    const formData = new FormData(this);
-    const type = formData.get('type');
-    const amount = formData.get('amount');
+    const type = document.getElementById('transaction_type').value;
+    const amount = document.querySelector('input[name="amount"]').value;
     
     // Show loading state
-    FinTrackAlert.loading('Adding Transaction...');
+    submitButton.disabled = true;
+    submitButton.textContent = 'Adding...';
     
-    // Submit form via fetch for better UX
-    e.preventDefault();
-    
-    fetch(this.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Accept': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Show success and close modal
-            FinTrackAlert.transactionSuccess(type, amount).then(() => {
-                closeAddTransactionModal();
-                // Reload page to show updated data
-                window.location.reload();
-            });
-        } else {
-            throw new Error(data.message || 'Failed to add transaction');
-        }
-    })
-    .catch(error => {
-        FinTrackAlert.error('Error', 'Failed to add transaction. Please try again.');
-        console.error('Error:', error);
-    });
+    // Let the form submit normally to avoid CSRF issues
+    // The success message will be shown on page reload via session flash
 });
 </script>
 @endpush
