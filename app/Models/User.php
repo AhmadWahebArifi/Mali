@@ -78,4 +78,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(Transaction::class, 'created_by');
     }
+
+    public function settings()
+    {
+        return $this->hasOne(UserSettings::class);
+    }
+
+    public function getCurrencyAttribute()
+    {
+        return $this->settings?->currency ?? 'AFN';
+    }
+
+    public function getTimezoneAttribute()
+    {
+        return $this->settings?->timezone ?? 'Asia/Kabul';
+    }
 }
