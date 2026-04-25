@@ -6,33 +6,50 @@ use Illuminate\Http\Request;
 use App\Models\Account;
 use App\Models\Transaction;
 use App\Models\Category;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // Calculate total balance from all accounts
-        $totalBalance = Account::sum('balance');
+        // User-based filtering - non-admins can only see their own data
+        $isAdmin = Auth::user()->email === 'admin@mali.com';
+        
+        // Calculate total balance from user's accounts (or all accounts for admin)
+        $accountQuery = Account::query();
+        if (!$isAdmin) {
+            $accountQuery->where('user_id', Auth::id());
+        }
+        $totalBalance = $accountQuery->sum('balance');
         
         // Calculate monthly income and expenses
         $currentMonth = now()->month;
         $currentYear = now()->year;
         
-        $monthlyIncome = Transaction::where('type', 'income')
+        $transactionQuery = Transaction::query();
+        if (!$isAdmin) {
+            $transactionQuery->where('created_by', Auth::id());
+        }
+        
+        $monthlyIncome = $transactionQuery->where('type', 'income')
             ->whereMonth('date', $currentMonth)
             ->whereYear('date', $currentYear)
             ->sum('amount');
             
-        $monthlyExpenses = Transaction::where('type', 'expense')
+        $monthlyExpenses = $transactionQuery->where('type', 'expense')
             ->whereMonth('date', $currentMonth)
             ->whereYear('date', $currentYear)
             ->sum('amount');
         
-        // Get all accounts
+        // Show all accounts like transaction pages, but balance calculations remain user-specific
         $accounts = Account::orderBy('balance', 'desc')->get();
         
-        // Get recent transactions
-        $recentTransactions = Transaction::with('category')
+        // Get recent transactions (user's transactions or all for admin)
+        $recentTransactionQuery = Transaction::with('category');
+        if (!$isAdmin) {
+            $recentTransactionQuery->where('created_by', Auth::id());
+        }
+        $recentTransactions = $recentTransactionQuery
             ->orderBy('date', 'desc')
             ->orderBy('created_at', 'desc')
             ->limit(5)
@@ -45,11 +62,17 @@ class DashboardController extends Controller
         
         for ($i = 5; $i >= 0; $i--) {
             $month = now()->subMonths($i);
-            $monthIncome = Transaction::where('type', 'income')
+            
+            $monthlyTransactionQuery = Transaction::query();
+            if (!$isAdmin) {
+                $monthlyTransactionQuery->where('created_by', Auth::id());
+            }
+            
+            $monthIncome = $monthlyTransactionQuery->where('type', 'income')
                 ->whereMonth('date', $month->month)
                 ->whereYear('date', $month->year)
                 ->sum('amount');
-            $monthExpenses = Transaction::where('type', 'expense')
+            $monthExpenses = $monthlyTransactionQuery->where('type', 'expense')
                 ->whereMonth('date', $month->month)
                 ->whereYear('date', $month->year)
                 ->sum('amount');
