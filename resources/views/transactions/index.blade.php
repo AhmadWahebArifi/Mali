@@ -11,7 +11,7 @@
     @if(session('success'))
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            FinTrackAlert.success('Success!', '{{ session('success') }}');
+            BawarFinTrackAlert.success('Success!', '{{ session('success') }}');
         });
     </script>
     @endif
@@ -174,9 +174,9 @@
 @push('scripts')
 <script>
 function deleteTransaction(id) {
-    FinTrackAlert.deleteConfirm('this transaction').then((result) => {
+    BawarFinTrackAlert.deleteConfirm('this transaction').then((result) => {
         if (result.isConfirmed) {
-            FinTrackAlert.loading('Deleting...');
+            BawarFinTrackAlert.loading('Deleting...');
             
             fetch(`/transactions/${id}`, {
                 method: 'DELETE',
@@ -188,15 +188,15 @@ function deleteTransaction(id) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    FinTrackAlert.success('Success!', data.message).then(() => {
+                    BawarFinTrackAlert.success('Success!', data.message).then(() => {
                         location.reload();
                     });
                 } else {
-                    FinTrackAlert.error('Error', data.message || 'Failed to delete transaction');
+                    BawarFinTrackAlert.error('Error', data.message || 'Failed to delete transaction');
                 }
             })
             .catch(error => {
-                FinTrackAlert.error('Error', 'Failed to delete transaction. Please try again.');
+                BawarFinTrackAlert.error('Error', 'Failed to delete transaction. Please try again.');
                 console.error('Error:', error);
             });
         }

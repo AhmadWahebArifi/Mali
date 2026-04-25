@@ -86,6 +86,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/notifications/{id}', [App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::delete('/notifications/clear-all', [App\Http\Controllers\NotificationController::class, 'clearAll'])->name('notifications.clear-all');
     Route::get('/faq', [App\Http\Controllers\FaqController::class, 'index'])->name('faq.index');
+    Route::get('/faq/search', [App\Http\Controllers\FaqController::class, 'search'])->name('faq.search');
     
     // Audit Logs Routes
     Route::get('/audit-logs', [App\Http\Controllers\AuditLogController::class, 'index'])->name('audit-logs.index');
@@ -93,6 +94,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');
     Route::get('/profile/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/profile/export', [App\Http\Controllers\ProfileController::class, 'exportData'])->name('profile.export');
+    Route::get('/profile/security', [App\Http\Controllers\ProfileController::class, 'security'])->name('profile.security');
+    Route::get('/profile/help', [App\Http\Controllers\ProfileController::class, 'help'])->name('profile.help');
+    Route::get('/profile/login-activity', [App\Http\Controllers\ProfileController::class, 'loginActivity'])->name('profile.login-activity');
     Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
     Route::post('/settings/reset', [App\Http\Controllers\SettingsController::class, 'reset'])->name('settings.reset');

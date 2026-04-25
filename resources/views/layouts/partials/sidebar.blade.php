@@ -5,7 +5,7 @@
             <span class="material-symbols-outlined text-white" data-icon="account_balance">account_balance</span>
         </div>
         <div>
-            <h1 class="text-xl font-black text-blue-600 dark:text-blue-400 leading-tight">FinTrack</h1>
+            <h1 class="text-xl font-black text-blue-600 dark:text-blue-400 leading-tight">BawarFinTrack</h1>
             <p class="text-[10px] uppercase tracking-widest text-gray-400 font-bold">Enterprise Finance</p>
         </div>
     </div>
@@ -36,13 +36,13 @@
             Settings
         </a>
         @if(auth()->check() && auth()->user()->email === 'admin@mali.com')
-        <a class="flex items-center gap-3 px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200 ease-in-out font-medium text-sm {{ request()->routeIs('admin.*') ? 'bg-red-50 dark:bg-red-900/20' : '' }}" href="{{ route('admin.users.index') }}">
-            <span class="material-symbols-outlined" data-icon="admin_panel_settings">admin_panel_settings</span>
-            Admin Panel
-        </a>
         <a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200 ease-in-out font-medium text-sm {{ request()->routeIs('audit-logs.*') ? 'bg-gray-100 dark:bg-gray-800' : '' }}" href="{{ route('audit-logs.index') }}">
             <span class="material-symbols-outlined" data-icon="fact_check">fact_check</span>
             Audit Logs
+        </a>
+        <a class="flex items-center gap-3 px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200 ease-in-out font-medium text-sm {{ request()->routeIs('admin.*') ? 'bg-red-50 dark:bg-red-900/20' : '' }}" href="{{ route('admin.users.index') }}">
+            <span class="material-symbols-outlined" data-icon="admin_panel_settings">admin_panel_settings</span>
+            Admin Panel
         </a>
         @endif
     </nav>

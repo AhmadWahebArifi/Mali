@@ -11,7 +11,7 @@
     @if(session('success'))
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            FinTrackAlert.success('Success!', '{{ session('success') }}');
+            BawarFinTrackAlert.success('Success!', '{{ session('success') }}');
         });
     </script>
     @endif

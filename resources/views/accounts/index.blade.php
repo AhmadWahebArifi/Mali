@@ -11,7 +11,7 @@
     @if(session('success'))
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            FinTrackAlert.success('Success!', '{{ session('success') }}');
+            BawarFinTrackAlert.success('Success!', '{{ session('success') }}');
         });
     </script>
     @endif
@@ -20,7 +20,7 @@
     @if(session('error'))
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            FinTrackAlert.error('Error', '{{ session('error') }}');
+            BawarFinTrackAlert.error('Error', '{{ session('error') }}');
         });
     </script>
     @endif
@@ -113,19 +113,19 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Accounts page loaded');
-    console.log('FinTrackAlert available:', typeof FinTrackAlert !== 'undefined');
+    console.log('BawarFinTrackAlert available:', typeof BawarFinTrackAlert !== 'undefined');
     console.log('Swal available:', typeof Swal !== 'undefined');
 });
 
 function editAccount(id) {
     console.log('Edit account called with ID:', id);
     
-    if (typeof FinTrackAlert === 'undefined') {
-        alert('FinTrackAlert is not loaded. Please refresh the page.');
+    if (typeof BawarFinTrackAlert === 'undefined') {
+        alert('BawarFinTrackAlert is not loaded. Please refresh the page.');
         return;
     }
     
-    FinTrackAlert.loading('Loading...');
+    BawarFinTrackAlert.loading('Loading...');
 
     fetch(`/accounts/${id}`, {
         headers: {
@@ -135,46 +135,74 @@ function editAccount(id) {
     .then(response => response.json())
     .then(data => {
         if (!data.success || !data.account) {
-            FinTrackAlert.error('Error', 'Failed to load account details');
+            BawarFinTrackAlert.error('Error', 'Failed to load account details');
             return;
         }
 
         const account = data.account;
+        const isAdmin = '{{ auth()->user()->email }}' === 'admin@mali.com';
+
+        // Build form HTML based on user role
+        let formHtml = `
+            <div style="text-align:left">
+                <label style="display:block;font-weight:600;margin-bottom:6px">Account Name</label>
+                <input id="swalAccountName" class="swal2-input" style="width:100%;margin:0 0 14px 0" value="${String(account.name ?? '').replace(/"/g, '&quot;')}">
+        `;
+
+        if (isAdmin) {
+            formHtml += `
+                <label style="display:block;font-weight:600;margin-bottom:6px">Balance</label>
+                <input id="swalAccountBalance" type="number" step="0.01" min="0" class="swal2-input" style="width:100%;margin:0" value="${account.balance ?? 0}">
+            `;
+        } else {
+            formHtml += `
+                <div style="padding:10px;background:#f5f5f5;border-radius:6px;margin-bottom:14px">
+                    <div style="font-weight:600;margin-bottom:4px">Current Balance</div>
+                    <div style="font-size:18px;color:#333">$${parseFloat(account.balance ?? 0).toFixed(2)}</div>
+                    <div style="font-size:12px;color:#666;margin-top:4px">Only administrators can modify account balances.</div>
+                </div>
+            `;
+        }
+
+        formHtml += `</div>`;
 
         Swal.fire({
             title: 'Edit Account',
-            html: `
-                <div style="text-align:left">
-                    <label style="display:block;font-weight:600;margin-bottom:6px">Account Name</label>
-                    <input id="swalAccountName" class="swal2-input" style="width:100%;margin:0 0 14px 0" value="${String(account.name ?? '').replace(/"/g, '&quot;')}">
-                    <label style="display:block;font-weight:600;margin-bottom:6px">Balance</label>
-                    <input id="swalAccountBalance" type="number" step="0.01" min="0" class="swal2-input" style="width:100%;margin:0" value="${account.balance ?? 0}">
-                </div>
-            `,
+            html: formHtml,
             showCancelButton: true,
             confirmButtonText: 'Save',
             cancelButtonText: 'Cancel',
             confirmButtonColor: '#004ccd',
             preConfirm: () => {
                 const name = document.getElementById('swalAccountName').value.trim();
-                const balanceValue = document.getElementById('swalAccountBalance').value;
-                const balance = parseFloat(balanceValue);
-
+                
                 if (!name) {
                     Swal.showValidationMessage('Account name is required');
                     return false;
                 }
-                if (Number.isNaN(balance) || balance < 0) {
-                    Swal.showValidationMessage('Balance must be a valid number (0 or more)');
-                    return false;
+
+                const result = { name };
+                
+                if (isAdmin) {
+                    const balanceValue = document.getElementById('swalAccountBalance').value;
+                    const balance = parseFloat(balanceValue);
+                    
+                    if (Number.isNaN(balance) || balance < 0) {
+                        Swal.showValidationMessage('Balance must be a valid number (0 or more)');
+                        return false;
+                    }
+                    
+                    result.balance = balance;
+                } else {
+                    result.balance = account.balance; // Keep existing balance for non-admins
                 }
 
-                return { name, balance };
+                return result;
             }
         }).then((result) => {
             if (!result.isConfirmed) return;
 
-            FinTrackAlert.loading('Saving...');
+            BawarFinTrackAlert.loading('Saving...');
 
             const formData = new FormData();
             formData.append('_method', 'PUT');
@@ -195,7 +223,7 @@ function editAccount(id) {
             })
             .then(({ ok, status, json }) => {
                 if (ok && json.success) {
-                    FinTrackAlert.success('Success!', json.message || 'Account updated successfully').then(() => {
+                    BawarFinTrackAlert.success('Success!', json.message || 'Account updated successfully').then(() => {
                         location.reload();
                     });
                     return;
@@ -204,33 +232,33 @@ function editAccount(id) {
                 if (status === 422 && json.errors) {
                     const firstField = Object.keys(json.errors)[0];
                     const firstError = firstField ? json.errors[firstField][0] : 'Validation error';
-                    FinTrackAlert.error('Validation Error', firstError);
+                    BawarFinTrackAlert.error('Validation Error', firstError);
                     return;
                 }
 
-                FinTrackAlert.error('Error', json.message || 'Failed to update account');
+                BawarFinTrackAlert.error('Error', json.message || 'Failed to update account');
             })
             .catch(() => {
-                FinTrackAlert.error('Error', 'Failed to update account. Please try again.');
+                BawarFinTrackAlert.error('Error', 'Failed to update account. Please try again.');
             });
         });
     })
     .catch(() => {
-        FinTrackAlert.error('Error', 'Failed to load account details');
+        BawarFinTrackAlert.error('Error', 'Failed to load account details');
     });
 }
 
 function deleteAccount(id) {
     console.log('Delete account called with ID:', id);
     
-    if (typeof FinTrackAlert === 'undefined') {
-        alert('FinTrackAlert is not loaded. Please refresh the page.');
+    if (typeof BawarFinTrackAlert === 'undefined') {
+        alert('BawarFinTrackAlert is not loaded. Please refresh the page.');
         return;
     }
     
-    FinTrackAlert.deleteConfirm('this account').then((result) => {
+    BawarFinTrackAlert.deleteConfirm('this account').then((result) => {
         if (result.isConfirmed) {
-            FinTrackAlert.loading('Deleting account...');
+            BawarFinTrackAlert.loading('Deleting account...');
             
             fetch(`/accounts/${id}`, {
                 method: 'DELETE',
@@ -242,15 +270,15 @@ function deleteAccount(id) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    FinTrackAlert.success('Success!', data.message).then(() => {
+                    BawarFinTrackAlert.success('Success!', data.message).then(() => {
                         location.reload();
                     });
                 } else {
-                    FinTrackAlert.error('Error', data.message || 'Failed to delete account');
+                    BawarFinTrackAlert.error('Error', data.message || 'Failed to delete account');
                 }
             })
             .catch(error => {
-                FinTrackAlert.error('Error', 'Failed to delete account. Please try again.');
+                BawarFinTrackAlert.error('Error', 'Failed to delete account. Please try again.');
                 console.error('Error:', error);
             });
         }

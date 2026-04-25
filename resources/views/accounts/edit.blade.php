@@ -54,7 +54,8 @@
                     @enderror
                 </div>
 
-                <!-- Balance -->
+                <!-- Balance (Admin Only) -->
+                @if(auth()->user()->email === 'admin@mali.com')
                 <div>
                     <label for="balance" class="block font-label-caps text-label-caps text-on-surface-variant mb-2">Balance</label>
                     <div class="relative">
@@ -66,6 +67,21 @@
                         <p class="mt-1 text-sm text-tertiary">{{ $message }}</p>
                     @enderror
                 </div>
+                @else
+                <!-- Balance Display (Read-only for non-admins) -->
+                <div>
+                    <label class="block font-label-caps text-label-caps text-on-surface-variant mb-2">Current Balance</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-on-surface-variant font-medium">$</span>
+                        <input type="text" value="{{ number_format($account->balance, 2) }}" readonly
+                               class="w-full pl-8 pr-4 py-3 border border-outline-variant rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed">
+                        <p class="mt-2 text-sm text-on-surface-variant">
+                            <span class="material-symbols-outlined text-sm align-middle">info</span>
+                            Only administrators can modify account balances. Contact your admin to make changes.
+                        </p>
+                    </div>
+                </div>
+                @endif
 
                 <!-- Submit Button -->
                 <div class="flex gap-3 pt-4">

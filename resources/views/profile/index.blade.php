@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Profile - FinTrack Pro')
+@section('title', 'Profile - BawarFinTrack')
 
 @section('page-title', 'Profile')
 
@@ -68,19 +68,19 @@
             <div class="space-y-4">
                 <div class="flex justify-between items-center">
                     <span class="text-sm text-on-surface-variant">Member Since</span>
-                    <span class="text-sm font-medium text-on-surface">{{ $user->created_at->format('M d, Y') }}</span>
+                    <span class="text-sm font-medium text-on-surface">{{ $statistics['member_since']->format('M d, Y') }}</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-sm text-on-surface-variant">Total Transactions</span>
-                    <span class="text-sm font-medium text-on-surface">0</span>
+                    <span class="text-sm font-medium text-on-surface">{{ $statistics['total_transactions'] }}</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-sm text-on-surface-variant">Accounts Created</span>
-                    <span class="text-sm font-medium text-on-surface">0</span>
+                    <span class="text-sm font-medium text-on-surface">{{ $statistics['accounts_created'] }}</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-sm text-on-surface-variant">Categories Used</span>
-                    <span class="text-sm font-medium text-on-surface">0</span>
+                    <span class="text-sm font-medium text-on-surface">{{ $statistics['categories_used'] }}</span>
                 </div>
             </div>
         </div>
@@ -94,18 +94,18 @@
                 <span class="material-symbols-outlined text-2xl text-primary">settings</span>
                 <span class="text-sm font-medium text-on-surface">Settings</span>
             </a>
-            <button class="flex flex-col items-center gap-2 p-4 border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors">
+            <a href="{{ route('profile.export') }}" class="flex flex-col items-center gap-2 p-4 border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors">
                 <span class="material-symbols-outlined text-2xl text-primary">download</span>
                 <span class="text-sm font-medium text-on-surface">Export Data</span>
-            </button>
-            <button class="flex flex-col items-center gap-2 p-4 border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors">
+            </a>
+            <a href="{{ route('profile.security') }}" class="flex flex-col items-center gap-2 p-4 border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors">
                 <span class="material-symbols-outlined text-2xl text-primary">security</span>
                 <span class="text-sm font-medium text-on-surface">Security</span>
-            </button>
-            <button class="flex flex-col items-center gap-2 p-4 border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors">
+            </a>
+            <a href="{{ route('profile.help') }}" class="flex flex-col items-center gap-2 p-4 border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors">
                 <span class="material-symbols-outlined text-2xl text-primary">help</span>
                 <span class="text-sm font-medium text-on-surface">Help</span>
-            </button>
+            </a>
         </div>
     </div>
 </main>

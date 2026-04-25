@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>FinTrack Pro - Secure Access</title>
+    <title>BawarFinTrack - Secure Access</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -109,6 +109,56 @@
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
             vertical-align: middle;
         }
+        
+        /* Custom animations for logo */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(0, 76, 205, 0.3);
+                border-color: rgba(0, 76, 205, 0.3);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(0, 76, 205, 0.5);
+                border-color: rgba(0, 76, 205, 0.5);
+            }
+        }
+        
+        .logo-container {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .logo-glow {
+            animation: pulse-glow 4s ease-in-out infinite;
+        }
+        
+        /* Gradient text animation */
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .gradient-text {
+            background-size: 200% 200%;
+            animation: gradient-shift 3s ease-in-out infinite;
+        }
+        
+        /* Particle animation */
+        @keyframes particle-float {
+            0% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
+            50% { transform: translateY(-5px) rotate(180deg); opacity: 0.8; }
+            100% { transform: translateY(0px) rotate(360deg); opacity: 0.3; }
+        }
+        
+        .particle {
+            animation: particle-float 3s ease-in-out infinite;
+        }
+        
+        .delay-75 { animation-delay: 0.75s; }
+        .delay-150 { animation-delay: 1.5s; }
     </style>
 </head>
 <body class="bg-background font-body-md text-on-background min-h-screen selection:bg-primary-container selection:text-on-primary-container">
@@ -117,12 +167,36 @@
     <div class="flex items-center justify-center p-4 md:p-8 lg:p-12 bg-surface">
         <div class="w-full max-w-[440px] space-y-8">
             <!-- Brand Header -->
-            <div class="space-y-2">
-                <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary text-3xl" data-icon="account_balance">account_balance</span>
-                    <span class="font-h1 text-h2 text-on-surface tracking-tighter">FinTrack Pro</span>
+            <div class="space-y-4">
+                <div class="flex items-center justify-center">
+                    <div class="relative group logo-container">
+                        <!-- Logo Container with Enhanced Animation -->
+                        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 p-6 shadow-xl ring-1 ring-primary/20 transition-all duration-300 group-hover:shadow-2xl group-hover:ring-primary/30 group-hover:scale-[1.02] logo-glow">
+                            <!-- Logo Image with Enhanced Effects -->
+                            <img src="{{ asset('logo.png') }}" 
+                                 alt="BawarFinTrack Logo" 
+                                 class="w-24 h-24 object-contain transition-transform duration-300 group-hover:scale-110"
+                                 style="filter: drop-shadow(0 4px 6px rgba(0, 76, 205, 0.1));">
+                        </div>
+                        
+                        <!-- Enhanced Floating Particles Effect -->
+                        <div class="absolute -top-2 -right-2 w-4 h-4 bg-primary/30 rounded-full particle"></div>
+                        <div class="absolute -bottom-1 -left-1 w-3 h-3 bg-secondary/30 rounded-full particle delay-75"></div>
+                        <div class="absolute top-1/3 -right-3 w-2 h-2 bg-tertiary/30 rounded-full particle delay-150"></div>
+                        <div class="absolute -top-3 left-2 w-2 h-2 bg-primary/20 rounded-full particle" style="animation-delay: 2s;"></div>
+                        <div class="absolute bottom-2 right-2 w-3 h-3 bg-secondary/20 rounded-full particle" style="animation-delay: 1s;"></div>
+                    </div>
                 </div>
-                <p class="font-body-md text-on-surface-variant">Enterprise-grade financial intelligence for modern organizations.</p>
+                
+                <!-- Brand Name with Enhanced Typography -->
+                <div class="text-center space-y-2">
+                    <h1 class="font-h1 text-h1 text-on-surface tracking-tight font-bold bg-gradient-to-r from-primary via-primary/90 to-primary/80 bg-clip-text text-transparent gradient-text">
+                        BawarFinTrack
+                    </h1>
+                    <p class="font-body-md text-on-surface-variant leading-relaxed max-w-sm mx-auto">
+                        Enterprise-grade financial intelligence for modern organizations.
+                    </p>
+                </div>
             </div>
             
             <!-- Login Form -->
@@ -287,65 +361,73 @@
         </div>
     </div>
     
-    <!-- Right Side: Brand Showcase -->
-    <div class="hidden lg:flex flex-col relative overflow-hidden bg-primary p-8 justify-between">
-        <!-- Background Decorative Element -->
-        <div class="absolute inset-0 z-0 opacity-10">
-            <div class="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-surface-container-lowest blur-3xl"></div>
-            <div class="absolute bottom-[-20%] left-[-20%] w-[800px] h-[800px] rounded-full bg-secondary-container blur-3xl"></div>
+    <!-- Right Side: Large Logo Showcase -->
+    <div class="hidden lg:flex flex-col relative overflow-hidden bg-primary items-center justify-center p-8">
+        <!-- Dynamic Background Effects -->
+        <div class="absolute inset-0 z-0">
+            <!-- Animated Gradient Orbs -->
+            <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
+            <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/3 rounded-full blur-3xl"></div>
+            
+            <!-- Floating Light Beams -->
+            <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/10 to-transparent animate-pulse"></div>
+            <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-white/10 to-transparent animate-pulse" style="animation-delay: 1s;"></div>
         </div>
         
-        <div class="relative z-10 space-y-4">
-            <div class="inline-flex items-center gap-2 bg-on-primary/10 backdrop-blur-md px-4 py-2 rounded-full border border-on-primary/20">
-                <span class="material-symbols-outlined text-on-primary text-sm" data-icon="verified_user">verified_user</span>
-                <span class="font-label-caps text-on-primary text-[10px]">SOC2 TYPE II COMPLIANT</span>
-            </div>
-            <h2 class="font-h1 text-[48px] leading-tight text-on-primary tracking-tighter">Unified control over every transaction.</h2>
-            <p class="font-body-lg text-primary-fixed max-w-md">Real-time visibility into your operational expenses, automated bookkeeping, and predictive cash flow forecasting.</p>
-        </div>
-        
-        <!-- Bento Card Grid Preview -->
-        <div class="relative z-10 grid grid-cols-2 gap-4 mt-12">
-            <div class="bg-white/10 backdrop-blur-xl border border-white/20 p-6 rounded-xl flex flex-col gap-2">
-                <span class="material-symbols-outlined text-secondary-fixed text-3xl" data-icon="trending_up">trending_up</span>
-                <div class="space-y-1">
-                    <p class="font-label-caps text-primary-fixed/80">NET REVENUE</p>
-                    <p class="font-display-financial text-h1 text-white">$142,850.00</p>
+        <!-- Large Logo Container -->
+        <div class="relative z-10 flex flex-col items-center justify-center space-y-8">
+            <!-- Massive Logo Display -->
+            <div class="relative group">
+                <!-- Outer Glow Ring -->
+                <div class="absolute inset-0 w-80 h-80 rounded-full bg-white/10 blur-2xl scale-110 group-hover:scale-125 transition-transform duration-1000"></div>
+                
+                <!-- Middle Glow Ring -->
+                <div class="absolute inset-4 w-72 h-72 rounded-full bg-white/15 blur-xl scale-105 group-hover:scale-110 transition-transform duration-1000 delay-75"></div>
+                
+                <!-- Inner Logo Container -->
+                <div class="relative w-64 h-64 rounded-3xl bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl border border-white/30 shadow-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-105 group-hover:rotate-3">
+                    <!-- Logo Image -->
+                    <img src="{{ asset('logo.png') }}" 
+                         alt="BawarFinTrack Logo" 
+                         class="w-48 h-48 object-contain transition-all duration-500 group-hover:scale-110 group-hover:drop-shadow-2xl"
+                         style="filter: drop-shadow(0 20px 40px rgba(255, 255, 255, 0.3));">
                 </div>
-            </div>
-            <div class="bg-white/10 backdrop-blur-xl border border-white/20 p-6 rounded-xl flex flex-col gap-2">
-                <span class="material-symbols-outlined text-on-tertiary-fixed text-3xl" data-icon="pie_chart">pie_chart</span>
-                <div class="space-y-1">
-                    <p class="font-label-caps text-primary-fixed/80">EXPENSE RATIO</p>
-                    <p class="font-display-financial text-h1 text-white">24.5%</p>
-                </div>
-            </div>
-            <div class="col-span-2 bg-white/10 backdrop-blur-xl border border-white/20 p-6 rounded-xl flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/30">
-                        <img alt="Executive User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfugcF9daFFyki9Aaeh3oCHmbYoHy3c_L97MV_3Slvp08sQIFKHucaSehe0gRSEPcOoHn-2CYIoETAOlWxLxiApfTzQOETKwMiUvgNkS8N8iz45HSKXzUpH-TgGzXeeAz7wX8kLKdR-zgk3-7WmF37A8g6CRJxIgPbRuKIaUmD2kxuPuziOd3mv4fpTSG_sQNSqoQNhLoYNbcfLQ2KBRXy7ZKW0vkSx5vV9-kcBebGV67pJoirPLGEj3Myf4_iNe-3rJHms8zv-iF8"/>
+                
+                <!-- Orbiting Particles -->
+                <div class="absolute inset-0 w-80 h-80">
+                    <div class="absolute top-0 left-1/2 w-4 h-4 bg-white/40 rounded-full animate-spin" style="animation-duration: 20s; transform-origin: center 160px;">
+                        <div class="w-full h-full bg-white rounded-full"></div>
                     </div>
-                    <div class="space-y-0">
-                        <p class="font-body-md font-bold text-white">Marcus Thorne</p>
-                        <p class="font-body-sm text-primary-fixed/80">CFO, TechFlow Systems</p>
+                    <div class="absolute top-0 left-1/2 w-3 h-3 bg-white/30 rounded-full animate-spin" style="animation-duration: 15s; transform-origin: center 160px; animation-direction: reverse;">
+                        <div class="w-full h-full bg-white rounded-full"></div>
+                    </div>
+                    <div class="absolute top-0 left-1/2 w-2 h-2 bg-white/50 rounded-full animate-spin" style="animation-duration: 25s; transform-origin: center 160px;">
+                        <div class="w-full h-full bg-white rounded-full"></div>
                     </div>
                 </div>
-                <div class="flex gap-1">
-                    <span class="material-symbols-outlined text-secondary-fixed text-sm" data-icon="star" data-weight="fill">star</span>
-                    <span class="material-symbols-outlined text-secondary-fixed text-sm" data-icon="star" data-weight="fill">star</span>
-                    <span class="material-symbols-outlined text-secondary-fixed text-sm" data-icon="star" data-weight="fill">star</span>
-                    <span class="material-symbols-outlined text-secondary-fixed text-sm" data-icon="star" data-weight="fill">star</span>
-                    <span class="material-symbols-outlined text-secondary-fixed text-sm" data-icon="star" data-weight="fill">star</span>
-                </div>
+                
+                <!-- Floating Particles -->
+                <div class="absolute -top-4 -right-4 w-6 h-6 bg-white/30 rounded-full animate-bounce"></div>
+                <div class="absolute -bottom-4 -left-4 w-4 h-4 bg-white/25 rounded-full animate-bounce" style="animation-delay: 0.5s;"></div>
+                <div class="absolute top-1/2 -right-8 w-3 h-3 bg-white/35 rounded-full animate-bounce" style="animation-delay: 1s;"></div>
+                <div class="absolute top-1/3 -left-6 w-5 h-5 bg-white/20 rounded-full animate-bounce" style="animation-delay: 1.5s;"></div>
+            </div>
+            
+            <!-- Brand Name with Massive Typography -->
+            <div class="text-center space-y-4">
+                <h1 class="font-display-financial text-6xl lg:text-7xl font-bold text-white tracking-tight">
+                    BawarFinTrack
+                </h1>
+                <p class="font-body-lg text-white/80 text-xl max-w-lg mx-auto leading-relaxed">
+                    Enterprise Financial Management Platform
+                </p>
             </div>
         </div>
         
-        <div class="relative z-10 flex justify-between items-center pt-8 border-t border-white/10">
-            <p class="font-body-sm text-primary-fixed/60">© 2024 FinTrack Pro Enterprise</p>
-            <div class="flex gap-4">
-                <a class="font-body-sm text-primary-fixed/60 hover:text-white" href="#">Security Policy</a>
-                <a class="font-body-sm text-primary-fixed/60 hover:text-white" href="#">Privacy</a>
-            </div>
+        <!-- Subtle Footer -->
+        <div class="absolute bottom-8 left-0 right-0 text-center z-10">
+            <p class="font-body-sm text-white/60">© 2024 BawarFinTrack Enterprise</p>
         </div>
     </div>
 </main>

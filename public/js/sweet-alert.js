@@ -1,5 +1,5 @@
-// Sweet Alert Utilities for FinTrack Pro
-class FinTrackAlert {
+// Sweet Alert Utilities for BawarFinTrack
+class BawarFinTrackAlert {
     // Success alert
     static success(title, message = '') {
         return Swal.fire({
