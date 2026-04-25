@@ -31,15 +31,15 @@
                         +12.4%
                     </span>
                 </div>
-                <h2 class="font-display-financial text-on-surface">${{ number_format($totalBalance, 2) }}</h2>
+                <h2 class="font-display-financial text-on-surface">{{ \App\Helpers\FormatHelper::currency($totalBalance) }}</h2>
                 <div class="flex gap-4 mt-6">
                     <div class="flex-1 bg-secondary/5 rounded-lg p-3 border border-secondary/10">
                         <p class="text-[10px] uppercase font-bold text-on-surface-variant mb-1">Monthly Income</p>
-                        <p class="text-secondary font-bold text-lg">+${{ number_format($monthlyIncome, 2) }}</p>
+                        <p class="text-secondary font-bold text-lg">+{{ \App\Helpers\FormatHelper::currency($monthlyIncome) }}</p>
                     </div>
                     <div class="flex-1 bg-tertiary/5 rounded-lg p-3 border border-tertiary/10">
                         <p class="text-[10px] uppercase font-bold text-on-surface-variant mb-1">Monthly Expenses</p>
-                        <p class="text-tertiary font-bold text-lg">-${{ number_format($monthlyExpenses, 2) }}</p>
+                        <p class="text-tertiary font-bold text-lg">-{{ \App\Helpers\FormatHelper::currency($monthlyExpenses) }}</p>
                     </div>
                 </div>
             </div>
@@ -141,11 +141,11 @@
                         </div>
                         <div>
                             <p class="font-body-sm font-semibold text-gray-900">{{ $transaction->description }}</p>
-                            <p class="text-[11px] text-gray-400">{{ $transaction->date->format('M d, Y') }} • {{ $transaction->category->name }}</p>
+                            <p class="text-[11px] text-gray-400">{{ \App\Helpers\FormatHelper::date($transaction->date, 'M d, Y') }} • {{ $transaction->category->name }}</p>
                         </div>
                     </div>
                     <p class="font-data-mono {{ $transaction->type === 'income' ? 'text-secondary' : 'text-tertiary' }}">
-                        {{ $transaction->type === 'income' ? '+' : '-' }}${{ number_format($transaction->amount, 2) }}
+                        {{ $transaction->type === 'income' ? '+' : '-' }}{{ \App\Helpers\FormatHelper::currency($transaction->amount) }}
                     </p>
                 </div>
                 @empty

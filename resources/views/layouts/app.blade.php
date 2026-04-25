@@ -137,9 +137,9 @@
     
     <script src="{{ asset('js/sweet-alert.js') }}"></script>
     <script>
-        // Check if FinTrackAlert is loaded
-        if (typeof FinTrackAlert === 'undefined') {
-            console.error('FinTrackAlert is not loaded');
+        // Check if BawarFinTrackAlert is loaded
+        if (typeof BawarFinTrackAlert === 'undefined') {
+            console.error('BawarFinTrackAlert is not loaded');
         }
         
         // Profile dropdown toggle

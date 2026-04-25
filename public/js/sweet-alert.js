@@ -170,4 +170,4 @@ class BawarFinTrackAlert {
 }
 
 // Make it globally available
-window.FinTrackAlert = FinTrackAlert;
+window.BawarFinTrackAlert = BawarFinTrackAlert;

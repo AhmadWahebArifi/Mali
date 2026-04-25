@@ -148,8 +148,8 @@
 @if(session('success'))
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        if (typeof FinTrackAlert !== 'undefined') {
-            FinTrackAlert.success('Success!', '{{ session('success') }}');
+        if (typeof BawarFinTrackAlert !== 'undefined') {
+            BawarFinTrackAlert.success('Success!', '{{ session('success') }}');
         } else {
             alert('{{ session('success') }}');
         }

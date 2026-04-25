@@ -22,10 +22,16 @@
             <p class="font-body-md text-body-sm text-on-surface-variant">Review and manage your detailed financial activities.</p>
         </div>
         <div class="flex items-center gap-2">
+            @if(auth()->user()->email === 'admin@mali.com')
+            <button onclick="openImportModal()" class="flex items-center gap-2 px-4 py-2 border border-outline-variant bg-white text-on-surface rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors">
+                <span class="material-symbols-outlined text-sm" data-icon="file_upload">file_upload</span>
+                Import CSV
+            </button>
             <a href="{{ route('transactions.export.csv', request()->query()) }}" class="flex items-center gap-2 px-4 py-2 border border-outline-variant bg-white text-on-surface rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors">
                 <span class="material-symbols-outlined text-sm" data-icon="file_download">file_download</span>
                 Export CSV
             </a>
+            @endif
             <a href="{{ route('transactions.create') }}" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium text-sm hover:bg-primary-container transition-colors shadow-sm">
                 <span class="material-symbols-outlined text-sm" data-icon="add">add</span>
                 New Transaction
@@ -108,8 +114,8 @@
                             <input class="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4 transaction-checkbox" type="checkbox" value="{{ $transaction->id }}">
                         </td>
                         <td class="py-4 px-4">
-                            <div class="font-data-mono text-data-mono text-on-surface">{{ $transaction->date->format('M d, Y') }}</div>
-                            <div class="text-[10px] text-on-surface-variant font-medium">{{ $transaction->created_at->format('h:i A') }}</div>
+                            <div class="font-data-mono text-data-mono text-on-surface">{{ \App\Helpers\FormatHelper::date($transaction->date, 'M d, Y') }}</div>
+                            <div class="text-[10px] text-on-surface-variant font-medium">{{ \App\Helpers\FormatHelper::time($transaction->created_at, 'h:i A') }}</div>
                         </td>
                         <td class="py-4 px-4">
                             <div class="font-medium text-on-surface text-sm">{{ $transaction->description }}</div>
@@ -128,7 +134,7 @@
                         </td>
                         <td class="py-4 px-4 text-right">
                             <div class="font-data-mono {{ $transaction->type === 'income' ? 'text-secondary' : 'text-error' }} font-bold">
-                                {{ $transaction->type === 'income' ? '+' : '-' }}${{ number_format($transaction->amount, 2) }}
+                                {{ $transaction->type === 'income' ? '+' : '-' }}{{ \App\Helpers\FormatHelper::currency($transaction->amount) }}
                             </div>
                         </td>
                         <td class="py-4 px-6 text-right">
@@ -228,5 +234,173 @@ function toggleBulkActions() {
         bulkActions.classList.add('hidden');
     }
 }
+
+// Import Modal Functions
+function openImportModal() {
+    const modal = document.getElementById('importModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImportModal() {
+    const modal = document.getElementById('importModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = 'auto';
+    
+    // Reset form
+    document.getElementById('importForm').reset();
+    document.getElementById('fileInfo').classList.add('hidden');
+}
+
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    const fileInfo = document.getElementById('fileInfo');
+    
+    if (file) {
+        if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+            BawarFinTrackAlert.error('Invalid File', 'Please select a CSV file');
+            event.target.value = '';
+            return;
+        }
+        
+        fileInfo.classList.remove('hidden');
+        fileInfo.innerHTML = `
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+                <span class="material-symbols-outlined text-sm">description</span>
+                <span>${file.name} (${(file.size / 1024).toFixed(2)} KB)</span>
+            </div>
+        `;
+    } else {
+        fileInfo.classList.add('hidden');
+    }
+}
+
+function handleImportSubmit(event) {
+    event.preventDefault();
+    
+    console.log('Import submit started');
+    
+    const formData = new FormData(event.target);
+    const file = formData.get('csv_file');
+    
+    console.log('File selected:', file ? file.name : 'No file');
+    
+    if (!file) {
+        BawarFinTrackAlert.error('No File', 'Please select a CSV file to import');
+        return;
+    }
+    
+    BawarFinTrackAlert.loading('Importing transactions...');
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const importUrl = '{{ route('transactions.import') }}';
+    
+    console.log('Import URL:', importUrl);
+    console.log('CSRF Token:', csrfToken ? 'Present' : 'Missing');
+    
+    fetch(importUrl, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.log('Error response text:', text);
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            BawarFinTrackAlert.success('Success!', data.message || 'Transactions imported successfully').then(() => {
+                closeImportModal();
+                window.location.reload();
+            });
+        } else {
+            BawarFinTrackAlert.error('Import Failed', data.message || 'Failed to import transactions');
+        }
+    })
+    .catch(error => {
+        console.error('Import error:', error);
+        BawarFinTrackAlert.error('Import Error', 'An error occurred while importing transactions: ' + error.message);
+    });
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('importModal');
+    if (event.target === modal) {
+        closeImportModal();
+    }
+});
 </script>
+
+<!-- Import CSV Modal -->
+<div id="importModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center text-on-primary-container">
+                        <span class="material-symbols-outlined">file_upload</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Import Transactions</h3>
+                        <p class="text-sm text-gray-600">Upload a CSV file to import transactions</p>
+                    </div>
+                </div>
+                <button onclick="closeImportModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+        </div>
+        
+        <form id="importForm" onsubmit="handleImportSubmit(event)" class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">CSV File</label>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
+                    <input type="file" name="csv_file" accept=".csv" onchange="handleFileSelect(event)" class="hidden" id="csvFileInput">
+                    <label for="csvFileInput" class="cursor-pointer">
+                        <span class="material-symbols-outlined text-3xl text-gray-400 mb-2 block">cloud_upload</span>
+                        <span class="text-sm text-gray-600">Click to upload CSV file</span>
+                        <span class="text-xs text-gray-500 block mt-1">or drag and drop</span>
+                    </label>
+                </div>
+                <div id="fileInfo" class="mt-2 hidden"></div>
+            </div>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <h4 class="text-sm font-medium text-blue-900 mb-2">CSV Format Requirements:</h4>
+                <ul class="text-xs text-blue-800 space-y-1">
+                    <li>• Date (YYYY-MM-DD format)</li>
+                    <li>• Description</li>
+                    <li>• Amount (numeric)</li>
+                    <li>• Type (income/expense)</li>
+                    <li>• Category Name</li>
+                    <li>• Account Name (optional)</li>
+                </ul>
+            </div>
+            
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="closeImportModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-container transition-colors font-medium">
+                    Import Transactions
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endpush

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Settings')
+@section('title', 'Settings - BawarFinTrack')
 
 @section('page-title', 'Settings')
 
@@ -50,154 +50,36 @@
             </div>
             
             <div class="p-6 space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
-                    <input type="text" name="company_name" value="{{ $currentSettings['company_name'] ?? '' }}" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           placeholder="{{ $user->first_name }} {{ $user->last_name }}">
-                    <p class="text-xs text-gray-500 mt-1">{{ $availableSettings['general']['company_name']['description'] }}</p>
-                </div>
-                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Currency</label>
                         <select name="currency" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            @foreach($availableSettings['general']['currency']['options'] as $option)
-                                <option value="{{ $option }}" {{ ($currentSettings['currency'] ?? $availableSettings['general']['currency']['default']) == $option ? 'selected' : '' }}>
-                                    {{ $option }}
+                            @php
+                                $currencies = \App\Helpers\FormatHelper::getAvailableCurrencies();
+                            @endphp
+                            @foreach($currencies as $currency)
+                                <option value="{{ $currency['code'] }}" {{ $settings->currency == $currency['code'] ? 'selected' : '' }}>
+                                    {{ $currency['symbol'] }} {{ $currency['name'] }} ({{ $currency['code'] }})
                                 </option>
                             @endforeach
                         </select>
-                        <p class="text-xs text-gray-500 mt-1">{{ $availableSettings['general']['currency']['description'] }}</p>
+                        <p class="text-xs text-gray-500 mt-1">Default currency for financial reports</p>
                     </div>
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
                         <select name="timezone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            @foreach($availableSettings['general']['timezone']['options'] as $option)
-                                <option value="{{ $option }}" {{ ($currentSettings['timezone'] ?? $availableSettings['general']['timezone']['default']) == $option ? 'selected' : '' }}>
-                                    {{ $option }}
+                            @php
+                                $timezones = \App\Helpers\FormatHelper::getAvailableTimezones();
+                            @endphp
+                            @foreach($timezones as $value => $label)
+                                <option value="{{ $value }}" {{ $settings->timezone == $value ? 'selected' : '' }}>
+                                    {{ $label }}
                                 </option>
                             @endforeach
                         </select>
-                        <p class="text-xs text-gray-500 mt-1">{{ $availableSettings['general']['timezone']['description'] }}</p>
+                        <p class="text-xs text-gray-500 mt-1">Your timezone for date/time display</p>
                     </div>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
-                    <select name="date_format" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        @foreach($availableSettings['general']['date_format']['options'] as $option)
-                                <option value="{{ $option }}" {{ ($currentSettings['date_format'] ?? $availableSettings['general']['date_format']['default']) == $option ? 'selected' : '' }}>
-                                    {{ \Carbon\Carbon::now()->format($option) }}
-                                </option>
-                            @endforeach
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">{{ $availableSettings['general']['date_format']['description'] }}</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Notification Settings -->
-        <div class="bg-white rounded-xl border border-outline-variant shadow-sm mb-6">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-2xl text-green-600">notifications</span>
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Notification Settings</h2>
-                        <p class="text-sm text-gray-600">Control how you receive notifications</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="p-6 space-y-4">
-                @foreach(['email_notifications', 'transaction_alerts', 'low_balance_alerts', 'monthly_reports'] as $key)
-                    <div class="flex items-center justify-between py-3">
-                        <div class="flex-1">
-                            <label class="text-sm font-medium text-gray-700">{{ $availableSettings['notifications'][$key]['label'] }}</label>
-                            <p class="text-xs text-gray-500 mt-1">{{ $availableSettings['notifications'][$key]['description'] }}</p>
-                        </div>
-                        <div class="ml-4">
-                            <input type="checkbox" name="{{ $key }}" value="1" 
-                                   {{ ($currentSettings[$key] ?? $availableSettings['notifications'][$key]['default']) ? 'checked' : '' }}
-                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-
-        <!-- Appearance Settings -->
-        <div class="bg-white rounded-xl border border-outline-variant shadow-sm mb-6">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-2xl text-purple-600">palette</span>
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Appearance</h2>
-                        <p class="text-sm text-gray-600">Customize the look and feel</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="p-6 space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Theme</label>
-                    <select name="theme" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        @foreach($availableSettings['appearance']['theme']['options'] as $option)
-                            <option value="{{ $option }}" {{ ($currentSettings['theme'] ?? $availableSettings['appearance']['theme']['default']) == $option ? 'selected' : '' }}>
-                                {{ ucfirst($option) }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">{{ $availableSettings['appearance']['theme']['description'] }}</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Security Settings -->
-        <div class="bg-white rounded-xl border border-outline-variant shadow-sm mb-6">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-2xl text-red-600">security</span>
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Security</h2>
-                        <p class="text-sm text-gray-600">Manage your security preferences</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="p-6 space-y-6">
-                <div class="flex items-center justify-between py-3">
-                    <div class="flex-1">
-                        <label class="text-sm font-medium text-gray-700">{{ $availableSettings['security']['two_factor_auth']['label'] }}</label>
-                        <p class="text-xs text-gray-500 mt-1">{{ $availableSettings['security']['two_factor_auth']['description'] }}</p>
-                    </div>
-                    <div class="ml-4">
-                        <input type="checkbox" name="two_factor_auth" value="1" 
-                               {{ ($currentSettings['two_factor_auth'] ?? $availableSettings['security']['two_factor_auth']['default']) ? 'checked' : '' }}
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    </div>
-                </div>
-                
-                <div class="flex items-center justify-between py-3">
-                    <div class="flex-1">
-                        <label class="text-sm font-medium text-gray-700">{{ $availableSettings['security']['login_notifications']['label'] }}</label>
-                        <p class="text-xs text-gray-500 mt-1">{{ $availableSettings['security']['login_notifications']['description'] }}</p>
-                    </div>
-                    <div class="ml-4">
-                        <input type="checkbox" name="login_notifications" value="1" 
-                               {{ ($currentSettings['login_notifications'] ?? $availableSettings['security']['login_notifications']['default']) ? 'checked' : '' }}
-                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    </div>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ $availableSettings['security']['session_timeout']['label'] }}</label>
-                    <input type="number" name="session_timeout" 
-                           value="{{ $currentSettings['session_timeout'] ?? $availableSettings['security']['session_timeout']['default'] }}"
-                           min="5" max="1440"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <p class="text-xs text-gray-500 mt-1">{{ $availableSettings['security']['session_timeout']['description'] }}</p>
                 </div>
             </div>
         </div>
@@ -253,6 +135,10 @@ function autoSave() {
     .then(data => {
         if (data.success) {
             showSuccessMessage('Settings auto-saved');
+            // Update currency symbols throughout the page if currency changed
+            if (data.currency) {
+                updateCurrencySymbols(data.currency);
+            }
         }
     })
     .catch(error => {
@@ -295,42 +181,15 @@ function showSuccessMessage(message) {
     }
 }
 
-// Initialize auto-save when page loads
-document.addEventListener('DOMContentLoaded', setupAutoSave);
-
-// Apply theme setting
-function applyTheme(theme) {
-    const html = document.documentElement;
-    
-    // Remove all theme classes first
-    html.classList.remove('light', 'dark');
-    
-    if (theme === 'dark') {
-        html.classList.add('dark');
-    } else if (theme === 'light') {
-        html.classList.add('light');
-    } else if (theme === 'auto') {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (prefersDark) {
-            html.classList.add('dark');
-        } else {
-            html.classList.add('light');
-        }
-    }
+function updateCurrencySymbols(newCurrency) {
+    // This function would update currency symbols throughout the application
+    // For now, we'll just reload the page to show the changes
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
 }
 
-// Apply current theme on page load
-document.addEventListener('DOMContentLoaded', () => {
-    const currentTheme = '{{ $currentSettings['theme'] ?? 'light' }}';
-    applyTheme(currentTheme);
-    
-    // Update theme when changed
-    const themeSelect = document.querySelector('select[name="theme"]');
-    if (themeSelect) {
-        themeSelect.addEventListener('change', (e) => {
-            applyTheme(e.target.value);
-        });
-    }
-});
+// Initialize auto-save when page loads
+document.addEventListener('DOMContentLoaded', setupAutoSave);
 </script>
 @endpush

@@ -202,4 +202,17 @@ class LoggingService
             'title' => $title,
         ]);
     }
+
+    /**
+     * Log transaction import
+     */
+    public static function logTransactionImport($userId, $importedCount, $errorCount = 0)
+    {
+        return self::activity('import', 'transactions', "Imported {$importedCount} transactions", [
+            'user_id' => $userId,
+            'imported_count' => $importedCount,
+            'error_count' => $errorCount,
+            'timestamp' => now(),
+        ]);
+    }
 }

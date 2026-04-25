@@ -101,6 +101,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
     Route::post('/settings/reset', [App\Http\Controllers\SettingsController::class, 'reset'])->name('settings.reset');
+    // Transactions Import/Export Routes
+    Route::post('/transactions/import', [TransactionController::class, 'import'])->name('transactions.import');
     // Reports Routes
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/annual-performance', [ReportController::class, 'annualPerformance'])->name('reports.annual-performance');

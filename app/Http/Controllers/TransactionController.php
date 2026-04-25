@@ -275,6 +275,11 @@ class TransactionController extends Controller
      */
     public function exportCsv(Request $request)
     {
+        // Check if user is admin
+        if (Auth::user()->email !== 'admin@mali.com') {
+            abort(403, 'Unauthorized. Only admin users can export transactions.');
+        }
+
         $query = Transaction::with(['account', 'category']);
         
         // User-based filtering - non-admins can only export their own transactions
@@ -336,5 +341,320 @@ class TransactionController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Import transactions from CSV file
+     */
+    public function import(Request $request)
+    {
+        // Debug: Log the request
+        \Log::info('Import request received', [
+            'user' => Auth::user() ? Auth::user()->email : 'not authenticated',
+            'has_file' => $request->hasFile('csv_file'),
+            'all_request_data' => $request->all()
+        ]);
+
+        // Check if user is admin
+        if (Auth::user()->email !== 'admin@mali.com') {
+            \Log::warning('Non-admin user attempted import', ['user' => Auth::user()->email]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admin users can import transactions.'
+            ], 403);
+        }
+
+        try {
+            $request->validate([
+                'csv_file' => 'required|file|mimes:csv,txt|max:10240', // Max 10MB
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation failed', ['errors' => $e->errors()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed: ' . implode(', ', $e->errors()['csv_file'] ?? [])
+            ], 422);
+        }
+
+        try {
+            $file = $request->file('csv_file');
+            if (!$file) {
+                \Log::error('No file uploaded');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No file uploaded'
+                ], 400);
+            }
+
+            \Log::info('File details', [
+                'original_name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+                'path' => $file->getPathname()
+            ]);
+
+            $filePath = $file->getPathname();
+            
+            // Read file content to check for BOM and handle encoding
+            $fileContent = file_get_contents($filePath);
+            if ($fileContent === false) {
+                \Log::error('Unable to read file content');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to read the uploaded file'
+                ], 400);
+            }
+
+            // Remove BOM if present
+            if (substr($fileContent, 0, 3) === "\xEF\xBB\xBF") {
+                $fileContent = substr($fileContent, 3);
+                \Log::info('BOM detected and removed');
+            }
+
+            // Write back to temp file without BOM
+            $tempPath = tempnam(sys_get_temp_dir(), 'csv_import_');
+            file_put_contents($tempPath, $fileContent);
+            
+            // Open and read the CSV file
+            $handle = fopen($tempPath, 'r');
+            if (!$handle) {
+                \Log::error('Unable to open file', ['path' => $tempPath]);
+                unlink($tempPath);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to read the uploaded file'
+                ], 400);
+            }
+
+            \Log::info('File opened successfully for parsing');
+
+            // Read header row
+            $header = fgetcsv($handle);
+            if (!$header) {
+                fclose($handle);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'CSV file is empty or invalid format'
+                ], 400);
+            }
+
+            // Normalize header keys (lowercase, trim spaces)
+            $header = array_map(function($value) {
+                return strtolower(trim($value));
+            }, $header);
+
+            // Required columns
+            $requiredColumns = ['date', 'description', 'amount', 'type', 'category'];
+            $missingColumns = array_diff($requiredColumns, $header);
+            
+            if (!empty($missingColumns)) {
+                fclose($handle);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing required columns: ' . implode(', ', $missingColumns)
+                ], 400);
+            }
+
+            // Get user info
+            $user = Auth::user();
+            $isAdmin = $user->email === 'admin@mali.com';
+            
+            // Get available categories and accounts for the user
+            if ($isAdmin) {
+                $categories = Category::all()->keyBy('name');
+                $accounts = Account::all()->keyBy('name');
+            } else {
+                $categories = Category::all()->keyBy('name');
+                $accounts = Account::where('user_id', $user->id)->get()->keyBy('name');
+            }
+
+            $importedCount = 0;
+            $errors = [];
+            $rowNumber = 2; // Start after header
+
+            // Process each row
+            while (($row = fgetcsv($handle)) !== false) {
+                try {
+                    // Skip empty rows
+                    if (empty(array_filter($row))) {
+                        $rowNumber++;
+                        continue;
+                    }
+
+                    \Log::info("Processing row {$rowNumber}", [
+                        'row_data' => $row,
+                        'row_count' => count($row),
+                        'header_count' => count($header)
+                    ]);
+
+                    // Check if row has more columns than header (trailing data)
+                    if (count($row) > count($header)) {
+                        $extraColumns = array_slice($row, count($header));
+                        \Log::warning("Row {$rowNumber} has extra columns", [
+                            'extra_columns' => $extraColumns,
+                            'expected_columns' => count($header),
+                            'actual_columns' => count($row)
+                        ]);
+                        // Trim the row to match header count
+                        $row = array_slice($row, 0, count($header));
+                    }
+
+                    // Map row data to column names
+                    $rowData = [];
+                    foreach ($header as $index => $columnName) {
+                        $rowData[$columnName] = isset($row[$index]) ? trim($row[$index]) : '';
+                    }
+
+                    \Log::info("Mapped row data for row {$rowNumber}", ['mapped_data' => $rowData]);
+
+                    // Validate required fields
+                    if (empty($rowData['date']) || empty($rowData['description']) || 
+                        empty($rowData['amount']) || empty($rowData['type']) || empty($rowData['category'])) {
+                        $errors[] = "Row {$rowNumber}: Missing required data";
+                        \Log::warning("Row {$rowNumber} missing required data", ['row_data' => $rowData]);
+                        $rowNumber++;
+                        continue;
+                    }
+
+                    // Validate date
+                    $date = \Carbon\Carbon::createFromFormat('Y-m-d', $rowData['date']);
+                    if (!$date) {
+                        $errors[] = "Row {$rowNumber}: Invalid date format (use YYYY-MM-DD)";
+                        $rowNumber++;
+                        continue;
+                    }
+
+                    // Validate amount
+                    $amount = floatval($rowData['amount']);
+                    if ($amount <= 0) {
+                        $errors[] = "Row {$rowNumber}: Amount must be greater than 0";
+                        $rowNumber++;
+                        continue;
+                    }
+
+                    // Validate type
+                    $type = strtolower($rowData['type']);
+                    if (!in_array($type, ['income', 'expense'])) {
+                        $errors[] = "Row {$rowNumber}: Type must be 'income' or 'expense'";
+                        $rowNumber++;
+                        continue;
+                    }
+
+                    // Find category
+                    $categoryName = trim($rowData['category']);
+                    $category = $categories->get($categoryName);
+                    
+                    if (!$category) {
+                        // Create new category if it doesn't exist
+                        $category = Category::create([
+                            'name' => $categoryName,
+                            'type' => $type,
+                            'icon' => $type === 'income' ? 'trending_up' : 'trending_down',
+                            'color' => $type === 'income' ? '#10b981' : '#ef4444',
+                        ]);
+                        $categories->put($categoryName, $category);
+                    }
+
+                    // Find account (optional)
+                    $account = null;
+                    if (!empty($rowData['account'])) {
+                        $accountName = trim($rowData['account']);
+                        $account = $accounts->get($accountName);
+                        
+                        if (!$account && !$isAdmin) {
+                            // Create new account for non-admin users if it doesn't exist
+                            $account = Account::create([
+                                'name' => $accountName,
+                                'balance' => 0,
+                                'user_id' => $user->id,
+                            ]);
+                            $accounts->put($accountName, $account);
+                        }
+                    }
+
+                    // If no account specified and user has accounts, use the first one
+                    if (!$account && !$isAdmin) {
+                        $account = $accounts->first();
+                    }
+
+                    // If still no account, skip this row
+                    if (!$account) {
+                        $errors[] = "Row {$rowNumber}: No valid account found and no account specified";
+                        $rowNumber++;
+                        continue;
+                    }
+
+                    // Create transaction
+                    Transaction::create([
+                        'date' => $date,
+                        'description' => $rowData['description'],
+                        'amount' => $amount,
+                        'type' => $type,
+                        'category_id' => $category->id,
+                        'account_id' => $account->id,
+                        'created_by' => $user->id,
+                    ]);
+
+                    // Update account balance
+                    if ($type === 'income') {
+                        $account->balance += $amount;
+                    } else {
+                        $account->balance -= $amount;
+                    }
+                    $account->save();
+
+                    $importedCount++;
+
+                } catch (\Exception $e) {
+                    $errors[] = "Row {$rowNumber}: " . $e->getMessage();
+                }
+                
+                $rowNumber++;
+            }
+
+            fclose($handle);
+            unlink($tempPath);
+
+            // Log the import activity
+            LoggingService::logTransactionImport($user->id, $importedCount, count($errors));
+
+            // Return response
+            if ($importedCount > 0) {
+                $message = "Successfully imported {$importedCount} transactions";
+                if (!empty($errors)) {
+                    $message .= ". " . count($errors) . " rows had errors and were skipped.";
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'imported_count' => $importedCount,
+                    'errors' => array_slice($errors, 0, 10) // Return first 10 errors
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No transactions were imported. Please check your CSV format.',
+                    'errors' => array_slice($errors, 0, 10)
+                ], 400);
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('CSV Import Error: ' . $e->getMessage(), [
+                'exception' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            // Clean up temp file if it exists
+            if (isset($tempPath) && file_exists($tempPath)) {
+                unlink($tempPath);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred during import: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

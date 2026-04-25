@@ -28,7 +28,7 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div class="bg-white border border-outline-variant p-6 rounded-xl flex flex-col gap-1 shadow-sm">
             <p class="font-label-caps text-label-caps text-on-surface-variant">TOTAL BALANCE</p>
-            <p class="font-h1 text-h1 text-primary">${{ number_format($totalBalance, 2) }}</p>
+            <p class="font-h1 text-h1 text-primary">{{ \App\Helpers\FormatHelper::currency($totalBalance) }}</p>
             <div class="flex items-center gap-1 mt-2 text-secondary">
                 <span class="material-symbols-outlined text-sm">trending_up</span>
                 <span class="text-xs font-bold">+2.4% this month</span>
@@ -82,7 +82,7 @@
                 <div class="mt-auto">
                     <p class="font-label-caps text-label-caps text-on-surface-variant">{{ $account->balance >= 0 ? 'CURRENT BALANCE' : 'OUTSTANDING DEBT' }}</p>
                     <p class="font-h2 text-h2 {{ $account->balance >= 0 ? 'text-on-surface' : 'text-tertiary' }}">
-                        {{ $account->balance >= 0 ? '$' : '-$' }}{{ number_format(abs($account->balance), 2) }}
+                        {{ \App\Helpers\FormatHelper::currency(abs($account->balance), null, false) }}
                     </p>
                 </div>
             </div>
