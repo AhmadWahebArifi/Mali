@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Services\LoggingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
@@ -32,11 +35,26 @@ class ProfileController extends Controller
         ]);
         
         // Update basic info
+        $oldValues = [
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'email' => $user->email,
+        ];
+        
         $user->update([
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
             'email' => $request->email,
         ]);
+        
+        $newValues = [
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'email' => $user->email,
+        ];
+        
+        // Log the profile update
+        LoggingService::audit('update', $user, 'Profile updated', $oldValues, $newValues);
         
         // Update password if provided
         if ($request->filled('password')) {

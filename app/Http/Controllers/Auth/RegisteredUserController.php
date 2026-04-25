@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\LoggingService;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
@@ -46,6 +47,9 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
             'is_approved' => false, // New users need admin approval
         ]);
+
+        // Log the user registration
+        LoggingService::logRegistration($user);
 
         event(new Registered($user));
 

@@ -91,14 +91,15 @@
         @if($approvedUsers->count() > 0)
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="bg-surface-container-low">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Name</th>
-                        <th class="px-6 py-4 text-left text-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Email</th>
-                        <th class="px-6 py-4 text-left text-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Approved</th>
-                        <th class="px-6 py-4 text-left text-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Status</th>
-                    </tr>
-                </thead>
+                <thead class="bg-surface-container-highest">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-on-surface-variant uppercase tracking-wider">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-on-surface-variant uppercase tracking-wider">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-on-surface-variant uppercase tracking-wider">Approved Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-on-surface-variant uppercase tracking-wider">Role</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-on-surface-variant uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
                 <tbody id="approvedUsersTable" class="divide-y divide-outline-variant">
                     @foreach($approvedUsers as $user)
                     <tr class="hover:bg-surface-container-low/50">
@@ -122,6 +123,14 @@
                                 <span class="material-symbols-outlined text-xs">person</span>
                                 User
                             </span>
+                            @endif
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            @if($user->email !== 'admin@mali.com')
+                            <button onclick="deleteUser({{ $user->id }}, '{{ $user->first_name }} {{ $user->last_name }}')" class="inline-flex items-center gap-1 px-3 py-1 bg-error text-on-error text-sm font-medium rounded-lg hover:bg-error-container transition-colors">
+                                <span class="material-symbols-outlined text-sm">delete</span>
+                                Delete
+                            </button>
                             @endif
                         </td>
                     </tr>
@@ -209,7 +218,7 @@ function updateApprovedUsersTable(approvedUsers) {
     if (approvedUsers.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4" class="p-12 text-center">
+                <td colspan="5" class="p-12 text-center">
                     <span class="material-symbols-outlined text-6xl text-gray-300 mb-4">people</span>
                     <p class="text-gray-500 text-lg mb-2">No approved users</p>
                     <p class="text-gray-400">No users have been approved yet.</p>
@@ -237,6 +246,14 @@ function updateApprovedUsersTable(approvedUsers) {
                     Approved
                 </span>
             </td>
+            <td class="px-6 py-4 text-right">
+                ${!user.is_admin ? `
+                <button onclick="deleteUser(${user.id}, '${user.name}')" class="inline-flex items-center gap-1 px-3 py-1 bg-error text-on-error text-sm font-medium rounded-lg hover:bg-error-container transition-colors">
+                    <span class="material-symbols-outlined text-sm">delete</span>
+                    Delete
+                </button>
+                ` : ''}
+            </td>
         </tr>
     `).join('');
 }
@@ -263,56 +280,55 @@ function approveUser(userId) {
         cancelButtonColor: '#6b7280',
         confirmButtonText: 'Approve'
     }).then((result) => {
-    
-    if (result.isConfirmed) {
-        Swal.fire({
-            title: 'Approving...',
-            text: 'Please wait',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-        
-        fetch(`/admin/users/${userId}/approve`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: data.message,
-                    confirmButtonColor: '#004ccd'
-                });
-                refreshUsersData();
-            } else {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Approving...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch(`/admin/users/${userId}/approve`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: data.message,
+                        confirmButtonColor: '#004ccd'
+                    });
+                    refreshUsersData();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to approve user',
+                        confirmButtonColor: '#004ccd'
+                    });
+                }
+            })
+            .catch(error => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: data.message || 'Failed to approve user',
+                    text: 'Failed to approve user. Please try again.',
                     confirmButtonColor: '#004ccd'
                 });
-            }
-        })
-        .catch(error => {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to approve user. Please try again.',
-                confirmButtonColor: '#004ccd'
+                console.error('Error:', error);
             });
-            console.error('Error:', error);
-        });
-    }
-});
+        }
+    });
 }
 
 function rejectUser(userId) {
@@ -376,6 +392,68 @@ function rejectUser(userId) {
     });
 }
 
+function deleteUser(userId, userName) {
+    Swal.fire({
+        title: 'Delete User?',
+        html: `Are you sure you want to delete <strong>${userName}</strong>?<br><br>This action cannot be undone and will permanently remove the user from the system.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Deleting...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch(`/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Deleted!',
+                        text: data.message,
+                        confirmButtonColor: '#004ccd'
+                    });
+                    refreshUsersData();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to delete user',
+                        confirmButtonColor: '#004ccd'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to delete user. Please try again.',
+                    confirmButtonColor: '#004ccd'
+                });
+                console.error('Error:', error);
+            });
+        }
+    });
+}
+
 // Start real-time updates when page loads
 document.addEventListener('DOMContentLoaded', function() {
     // Initial load
@@ -406,11 +484,11 @@ document.querySelectorAll('.swal2-confirm').forEach(button => {
             cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, proceed!'
         }).then((result) => {
-        
-        if (result.isConfirmed) {
-            FinTrackAlert.loading('Rejecting...');
-            form.submit();
-        }
+            if (result.isConfirmed) {
+                FinTrackAlert.loading('Rejecting...');
+                form.submit();
+            }
+        });
     });
 });
 </script>

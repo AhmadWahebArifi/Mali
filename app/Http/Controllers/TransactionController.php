@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\Account;
 use App\Models\Category;
-use App\Models\Notification;
+use App\Services\NotificationService;
+use App\Services\LoggingService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TransactionController extends Controller
@@ -93,6 +95,9 @@ class TransactionController extends Controller
             'created_by' => $user->id,
         ]);
 
+        // Log the transaction creation
+        LoggingService::logTransactionCreate($transaction);
+
         // Update account balance
         $account = Account::find($validated['account_id']);
         if ($account) {
@@ -104,37 +109,14 @@ class TransactionController extends Controller
             $account->save();
         }
 
-        // Create notification for the transaction
-        $title = ucfirst($validated['type']) . ' Transaction Added';
-        $message = ucfirst($validated['type']) . ' of $' . number_format($validated['amount'], 2) . ' has been added to ' . $account->name . ' account';
-        $type = $validated['type'] === 'income' ? 'success' : 'info';
+        // Create notifications using NotificationService
+        $notificationService = new NotificationService();
         
-        Notification::createForUser(
-            $user->id,
-            $title,
-            $message,
-            $type,
-            [
-                'transaction_id' => $transaction->id,
-                'account_id' => $account->id,
-                'amount' => $validated['amount'],
-                'type' => $validated['type']
-            ]
-        );
-
-        // Check for low balance warning
-        if ($account->balance < 100 && $validated['type'] === 'expense') {
-            Notification::createForUser(
-                $user->id,
-                'Account Balance Low',
-                'Your ' . $account->name . ' account balance is below $100',
-                'warning',
-                [
-                    'account_id' => $account->id,
-                    'balance' => $account->balance
-                ]
-            );
-        }
+        // Create transaction alert (respects user preferences)
+        $notificationService->createTransactionAlert($transaction);
+        
+        // Check for low balance warning (respects user preferences)
+        $notificationService->createLowBalanceAlert($account);
 
         // Check if request expects JSON (from fetch/AJAX)
         if ($request->expectsJson()) {
@@ -179,7 +161,43 @@ class TransactionController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $transaction = Transaction::findOrFail($id);
+        
+        // Store old values for audit logging
+        $oldValues = [
+            'type' => $transaction->type,
+            'amount' => $transaction->amount,
+            'category_id' => $transaction->category_id,
+            'account_id' => $transaction->account_id,
+            'date' => $transaction->date,
+            'description' => $transaction->description,
+        ];
+        
+        $validated = $request->validate([
+            'type' => 'required|in:income,expense',
+            'amount' => 'required|numeric|min:0.01',
+            'category_id' => 'required|exists:categories,id',
+            'account_id' => 'required|exists:accounts,id',
+            'date' => 'required|date',
+            'description' => 'nullable|string|max:255',
+        ]);
+        
+        $transaction->update($validated);
+        
+        // Store new values for audit logging
+        $newValues = [
+            'type' => $transaction->type,
+            'amount' => $transaction->amount,
+            'category_id' => $transaction->category_id,
+            'account_id' => $transaction->account_id,
+            'date' => $transaction->date,
+            'description' => $transaction->description,
+        ];
+        
+        // Log the transaction update
+        LoggingService::logTransactionUpdate($transaction, $oldValues, $newValues);
+        
+        return redirect()->route('transactions.index')->with('success', 'Transaction updated successfully!');
     }
 
     /**
@@ -188,6 +206,9 @@ class TransactionController extends Controller
     public function destroy(string $id)
     {
         $transaction = Transaction::findOrFail($id);
+        
+        // Log the transaction deletion before it's deleted
+        LoggingService::logTransactionDelete($transaction);
         
         // Update account balance (reverse the transaction)
         $account = Account::find($transaction->account_id);

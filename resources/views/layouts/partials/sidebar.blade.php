@@ -40,6 +40,10 @@
             <span class="material-symbols-outlined" data-icon="admin_panel_settings">admin_panel_settings</span>
             Admin Panel
         </a>
+        <a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200 ease-in-out font-medium text-sm {{ request()->routeIs('audit-logs.*') ? 'bg-gray-100 dark:bg-gray-800' : '' }}" href="{{ route('audit-logs.index') }}">
+            <span class="material-symbols-outlined" data-icon="fact_check">fact_check</span>
+            Audit Logs
+        </a>
         @endif
     </nav>
 </aside>

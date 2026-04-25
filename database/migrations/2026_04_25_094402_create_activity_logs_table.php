@@ -11,18 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('settings', function (Blueprint $table) {
+        Schema::create('activity_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('key');
-            $table->text('value')->nullable();
-            $table->string('type')->default('string'); // string, boolean, integer, json
-            $table->string('category')->default('general'); // general, notifications, appearance, security
+            $table->string('activity'); // login, logout, view_page, etc.
+            $table->string('module')->nullable(); // dashboard, transactions, settings, etc.
             $table->text('description')->nullable();
+            $table->string('ip_address')->nullable();
+            $table->text('user_agent')->nullable();
+            $table->json('metadata')->nullable();
             $table->timestamps();
             
-            $table->unique(['user_id', 'key']);
-            $table->index(['user_id', 'category']);
+            $table->index(['user_id', 'activity']);
+            $table->index('module');
+            $table->index('created_at');
         });
     }
 
@@ -31,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('settings');
+        Schema::dropIfExists('activity_logs');
     }
 };

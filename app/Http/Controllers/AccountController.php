@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Account;
+use App\Services\NotificationService;
+use App\Services\LoggingService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AccountController extends Controller
 {
@@ -40,6 +43,9 @@ class AccountController extends Controller
             'name' => $validated['name'],
             'balance' => $validated['balance'],
         ]);
+
+        // Log the account creation
+        LoggingService::logAccountCreate($account);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -87,6 +93,12 @@ class AccountController extends Controller
     {
         $account = Account::findOrFail($id);
 
+        // Store old values for audit logging
+        $oldValues = [
+            'name' => $account->name,
+            'balance' => $account->balance,
+        ];
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:accounts,name,' . $account->id,
             'balance' => 'required|numeric|min:0',
@@ -96,6 +108,15 @@ class AccountController extends Controller
             'name' => $validated['name'],
             'balance' => $validated['balance'],
         ]);
+
+        // Store new values for audit logging
+        $newValues = [
+            'name' => $account->name,
+            'balance' => $account->balance,
+        ];
+
+        // Log the account update
+        LoggingService::logAccountUpdate($account, $oldValues, $newValues);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -128,6 +149,9 @@ class AccountController extends Controller
             return redirect()->route('accounts.index')
                 ->with('error', "Cannot delete account with {$transactionCount} transactions. Please delete or reassign transactions first.");
         }
+        
+        // Log the account deletion before deletion
+        LoggingService::logAccountDelete($account);
         
         $account->delete();
         
