@@ -516,10 +516,21 @@ class TransactionController extends Controller
                         continue;
                     }
 
-                    // Validate date
-                    $date = \Carbon\Carbon::createFromFormat('Y-m-d', $rowData['date']);
+                    // Validate date - try multiple formats
+                    $date = null;
+                    $dateFormats = ['Y-m-d', 'm/d/Y', 'd/m/Y', 'm-d-Y', 'd-m-Y'];
+                    
+                    foreach ($dateFormats as $format) {
+                        try {
+                            $date = \Carbon\Carbon::createFromFormat($format, $rowData['date']);
+                            if ($date) break;
+                        } catch (\Exception $e) {
+                            // Continue to next format
+                        }
+                    }
+                    
                     if (!$date) {
-                        $errors[] = "Row {$rowNumber}: Invalid date format (use YYYY-MM-DD)";
+                        $errors[] = "Row {$rowNumber}: Invalid date format (use YYYY-MM-DD, MM/DD/YYYY, or DD/MM/YYYY)";
                         $rowNumber++;
                         continue;
                     }
