@@ -10,14 +10,14 @@
     @if(session('success'))
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            FinTrackAlert.success('Success!', '{{ session('success') }}');
+            BawarFinTrackAlert.success('Success!', '{{ session('success') }}');
         });
     </script>
     @endif
     @if(session('error'))
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            FinTrackAlert.error('Error', '{{ session('error') }}');
+            BawarFinTrackAlert.error('Error', '{{ session('error') }}');
         });
     </script>
     @endif
@@ -143,8 +143,8 @@
 @push('scripts')
 <script>
 function openAddCategoryModal(type) {
-    if (typeof FinTrackAlert === 'undefined') {
-        alert('FinTrackAlert not loaded. Please refresh.');
+    if (typeof BawarFinTrackAlert === 'undefined') {
+        alert('BawarFinTrackAlert not loaded. Please refresh.');
         return;
     }
 
@@ -171,7 +171,7 @@ function openAddCategoryModal(type) {
     }).then((result) => {
         if (!result.isConfirmed) return;
 
-        FinTrackAlert.loading('Creating category...');
+        BawarFinTrackAlert.loading('Creating category...');
 
         const formData = new FormData();
         formData.append('name', result.value.name);
@@ -191,7 +191,7 @@ function openAddCategoryModal(type) {
         })
         .then(({ ok, status, json }) => {
             if (ok && json.success) {
-                FinTrackAlert.success('Success!', json.message || 'Category created successfully').then(() => {
+                BawarFinTrackAlert.success('Success!', json.message || 'Category created successfully').then(() => {
                     location.reload();
                 });
                 return;
@@ -199,24 +199,24 @@ function openAddCategoryModal(type) {
             if (status === 422 && json.errors) {
                 const firstField = Object.keys(json.errors)[0];
                 const firstError = firstField ? json.errors[firstField][0] : 'Validation error';
-                FinTrackAlert.error('Validation Error', firstError);
+                BawarFinTrackAlert.error('Validation Error', firstError);
                 return;
             }
-            FinTrackAlert.error('Error', json.message || 'Failed to create category');
+            BawarFinTrackAlert.error('Error', json.message || 'Failed to create category');
         })
         .catch(() => {
-            FinTrackAlert.error('Error', 'Failed to create category. Please try again.');
+            BawarFinTrackAlert.error('Error', 'Failed to create category. Please try again.');
         });
     });
 }
 
 function editCategory(id) {
-    if (typeof FinTrackAlert === 'undefined') {
-        alert('FinTrackAlert not loaded. Please refresh.');
+    if (typeof BawarFinTrackAlert === 'undefined') {
+        alert('BawarFinTrackAlert not loaded. Please refresh.');
         return;
     }
 
-    FinTrackAlert.loading('Loading...');
+    BawarFinTrackAlert.loading('Loading...');
 
     fetch(`/categories/${id}`, {
         headers: { 'Accept': 'application/json' }
@@ -224,7 +224,7 @@ function editCategory(id) {
     .then(response => response.json())
     .then(data => {
         if (!data.success || !data.category) {
-            FinTrackAlert.error('Error', 'Failed to load category details');
+            BawarFinTrackAlert.error('Error', 'Failed to load category details');
             return;
         }
 
@@ -259,7 +259,7 @@ function editCategory(id) {
         }).then((result) => {
             if (!result.isConfirmed) return;
 
-            FinTrackAlert.loading('Saving...');
+            BawarFinTrackAlert.loading('Saving...');
 
             const formData = new FormData();
             formData.append('_method', 'PUT');
@@ -280,7 +280,7 @@ function editCategory(id) {
             })
             .then(({ ok, status, json }) => {
                 if (ok && json.success) {
-                    FinTrackAlert.success('Success!', json.message || 'Category updated successfully').then(() => {
+                    BawarFinTrackAlert.success('Success!', json.message || 'Category updated successfully').then(() => {
                         location.reload();
                     });
                     return;
@@ -288,30 +288,30 @@ function editCategory(id) {
                 if (status === 422 && json.errors) {
                     const firstField = Object.keys(json.errors)[0];
                     const firstError = firstField ? json.errors[firstField][0] : 'Validation error';
-                    FinTrackAlert.error('Validation Error', firstError);
+                    BawarFinTrackAlert.error('Validation Error', firstError);
                     return;
                 }
-                FinTrackAlert.error('Error', json.message || 'Failed to update category');
+                BawarFinTrackAlert.error('Error', json.message || 'Failed to update category');
             })
             .catch(() => {
-                FinTrackAlert.error('Error', 'Failed to update category. Please try again.');
+                BawarFinTrackAlert.error('Error', 'Failed to update category. Please try again.');
             });
         });
     })
     .catch(() => {
-        FinTrackAlert.error('Error', 'Failed to load category details');
+        BawarFinTrackAlert.error('Error', 'Failed to load category details');
     });
 }
 
 function deleteCategory(id) {
-    if (typeof FinTrackAlert === 'undefined') {
-        alert('FinTrackAlert not loaded. Please refresh.');
+    if (typeof BawarFinTrackAlert === 'undefined') {
+        alert('BawarFinTrackAlert not loaded. Please refresh.');
         return;
     }
 
-    FinTrackAlert.deleteConfirm('this category').then((result) => {
+    BawarFinTrackAlert.deleteConfirm('this category').then((result) => {
         if (result.isConfirmed) {
-            FinTrackAlert.loading('Deleting category...');
+            BawarFinTrackAlert.loading('Deleting category...');
 
             fetch(`/categories/${id}`, {
                 method: 'DELETE',
@@ -323,15 +323,15 @@ function deleteCategory(id) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    FinTrackAlert.success('Success!', data.message).then(() => {
+                    BawarFinTrackAlert.success('Success!', data.message).then(() => {
                         location.reload();
                     });
                 } else {
-                    FinTrackAlert.error('Error', data.message || 'Failed to delete category');
+                    BawarFinTrackAlert.error('Error', data.message || 'Failed to delete category');
                 }
             })
             .catch(() => {
-                FinTrackAlert.error('Error', 'Failed to delete category. Please try again.');
+                BawarFinTrackAlert.error('Error', 'Failed to delete category. Please try again.');
             });
         }
     });
