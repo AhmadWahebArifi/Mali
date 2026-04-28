@@ -15,8 +15,22 @@ class AccountController extends Controller
      */
     public function index()
     {
-        $accounts = Account::orderBy('balance', 'desc')->get();
-        $totalBalance = Account::sum('balance');
+        // Ensure user is authenticated
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+        
+        $isAdmin = Auth::user()->email === 'admin@mali.com';
+        
+        // Filter accounts by user (admin can see all)
+        $accountQuery = Account::orderBy('balance', 'desc');
+        if (!$isAdmin) {
+            $accountQuery->where('user_id', Auth::id());
+        }
+        $accounts = $accountQuery->get();
+        
+        // Calculate total balance for user's accounts only
+        $totalBalance = $accountQuery->sum('balance');
         
         return view('accounts.index', compact('accounts', 'totalBalance'));
     }
@@ -35,13 +49,14 @@ class AccountController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:accounts,name',
+            'name' => 'required|string|max:255|unique:accounts,name,NULL,id,user_id,' . Auth::id(),
             'balance' => 'required|numeric|min:0',
         ]);
 
         $account = Account::create([
             'name' => $validated['name'],
             'balance' => $validated['balance'],
+            'user_id' => Auth::id(),
         ]);
 
         // Log the account creation
@@ -104,7 +119,7 @@ class AccountController extends Controller
 
         // Different validation rules based on user role
         $validationRules = [
-            'name' => 'required|string|max:255|unique:accounts,name,' . $account->id,
+            'name' => 'required|string|max:255|unique:accounts,name,' . $account->id . ',id,user_id,' . $account->user_id,
         ];
         
         // Only admin can change balance
