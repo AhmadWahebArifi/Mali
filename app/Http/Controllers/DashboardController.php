@@ -6,23 +6,51 @@ use Illuminate\Http\Request;
 use App\Models\Account;
 use App\Models\Transaction;
 use App\Models\Category;
+use App\Models\Budget;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     public function index()
     {
+        // Ensure user is authenticated
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+        
         // User-based filtering - non-admins can only see their own data
         $isAdmin = Auth::user()->email === 'admin@mali.com';
         
-        // Calculate total balance from user's accounts (or all accounts for admin)
-        $accountQuery = Account::query();
-        if (!$isAdmin) {
-            $accountQuery->where('user_id', Auth::id());
-        }
+        // Calculate total balance from the logged-in user's accounts
+        // (Admin dashboard should not be inflated by other users' account balances.)
+        $accountQuery = Account::query()->where('user_id', Auth::id());
         $totalBalance = $accountQuery->sum('balance');
         
-        // Calculate monthly income and expenses
+        // Get budget data for the logged-in user only
+        $budgets = Budget::with('category', 'user')
+            ->where('user_id', Auth::id())
+            ->where('is_active', true)
+            ->get();
+        
+        // Calculate totals
+        $totalBalance = $accountQuery->sum('balance'); // Actual cash on hand
+        $totalBudgetAmount = $budgets->sum('amount');
+        $totalBudgetBalance = $budgets->sum('current_balance');
+        
+        // Total Net Worth should be actual cash (account balances) 
+        // Budget allocations are not actual cash, they're spending limits
+        $totalNetWorth = $totalBalance;
+        
+        // Debug logging
+        \Log::info('Dashboard Debug', [
+            'totalBalance' => $totalBalance,
+            'totalBudgetAmount' => $totalBudgetAmount,
+            'totalBudgetBalance' => $totalBudgetBalance,
+            'totalNetWorth' => $totalNetWorth,
+            'budgets_count' => $budgets->count()
+        ]);
+        
+        // Calculate monthly income and expenses (from transactions)
         $currentMonth = now()->month;
         $currentYear = now()->year;
         
@@ -41,8 +69,10 @@ class DashboardController extends Controller
             ->whereYear('date', $currentYear)
             ->sum('amount');
         
-        // Show all accounts like transaction pages, but balance calculations remain user-specific
-        $accounts = Account::orderBy('balance', 'desc')->get();
+        // Get accounts for display (logged-in user's accounts only)
+        $accounts = Account::where('user_id', Auth::id())
+            ->orderBy('balance', 'desc')
+            ->get();
         
         // Get recent transactions (user's transactions or all for admin)
         $recentTransactionQuery = Transaction::with('category');
@@ -86,13 +116,35 @@ class DashboardController extends Controller
             $monthIndex++;
         }
         
+        // Calculate remaining budget totals
+        $totalBudgetSpent = $budgets->sum('spent');
+        $totalBudgetRemaining = $totalBudgetAmount - $totalBudgetSpent;
+        $budgetUsagePercentage = $totalBudgetAmount > 0 ? ($totalBudgetSpent / $totalBudgetAmount) * 100 : 0;
+        
+        // Get budgets that are over limit or near limit
+        $overBudgetBudgets = $budgets->filter(function($budget) {
+            return $budget->is_over_budget;
+        });
+        $nearLimitBudgets = $budgets->filter(function($budget) {
+            return $budget->is_near_limit && !$budget->is_over_budget;
+        });
+        
         return view('dashboard.index', compact(
             'totalBalance',
+            'totalNetWorth',
             'monthlyIncome',
             'monthlyExpenses',
             'accounts',
             'recentTransactions',
-            'monthlyData'
+            'monthlyData',
+            'budgets',
+            'totalBudgetAmount',
+            'totalBudgetSpent',
+            'totalBudgetBalance',
+            'totalBudgetRemaining',
+            'budgetUsagePercentage',
+            'overBudgetBudgets',
+            'nearLimitBudgets'
         ));
     }
 }
