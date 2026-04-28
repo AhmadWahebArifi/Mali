@@ -27,6 +27,12 @@
             <span class="material-symbols-outlined" data-icon="category">category</span>
             Categories
         </a>
+        @if(auth()->check() && auth()->user()->email === 'admin@mali.com')
+        <a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200 ease-in-out font-medium text-sm {{ request()->routeIs('budgets.*') ? 'bg-gray-100 dark:bg-gray-800' : '' }}" href="{{ route('budgets.index') }}">
+            <span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+            Budget Assignment
+        </a>
+        @endif
         <a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200 ease-in-out font-medium text-sm {{ request()->routeIs('reports.*') ? 'bg-gray-100 dark:bg-gray-800' : '' }}" href="{{ route('reports.index') }}">
             <span class="material-symbols-outlined" data-icon="bar_chart">bar_chart</span>
             Reports

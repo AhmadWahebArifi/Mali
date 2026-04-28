@@ -8,6 +8,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController as AuthRegisteredUserController;
 use Illuminate\Support\Facades\Route;
@@ -110,4 +111,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reports/detailed-statement', [ReportController::class, 'detailedStatement'])->name('reports.detailed-statement');
     Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
     Route::get('/reports/export/csv', [ReportController::class, 'exportCsv'])->name('reports.export.csv');
+    
+    // Budget Routes (Admin only for CRUD, users can view their own)
+    Route::get('/budgets', [BudgetController::class, 'index'])->name('budgets.index');
+    Route::get('/budgets/create', [BudgetController::class, 'create'])->name('budgets.create');
+    Route::post('/budgets', [BudgetController::class, 'store'])->name('budgets.store');
+    Route::get('/budgets/{budget}/edit', [BudgetController::class, 'edit'])->name('budgets.edit');
+    Route::put('/budgets/{budget}', [BudgetController::class, 'update'])->name('budgets.update');
+    Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])->name('budgets.destroy');
+    Route::post('/budgets/{budget}/toggle', [BudgetController::class, 'toggleStatus'])->name('budgets.toggle');
+    Route::post('/budgets/{budget}/update-spent', [BudgetController::class, 'updateSpent'])->name('budgets.update-spent');
+    
+    // Admin Budget Pool Routes (Admin only)
+    Route::get('/budgets/add-funds', [BudgetController::class, 'showAddFunds'])->name('budgets.add-funds');
+    Route::post('/budgets/add-funds', [BudgetController::class, 'addFunds'])->name('budgets.add-funds.store');
 });
