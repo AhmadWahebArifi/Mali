@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Transaction;
 use App\Models\Account;
 use App\Models\Category;
+use App\Models\Budget;
 use App\Services\NotificationService;
 use App\Services\LoggingService;
 use Illuminate\Http\Request;
@@ -18,6 +19,11 @@ class TransactionController extends Controller
      */
     public function index(Request $request)
     {
+        // Ensure user is authenticated
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+        
         $query = Transaction::with(['account', 'category']);
         
         // User-based filtering - non-admins can only see their own transactions
@@ -118,6 +124,9 @@ class TransactionController extends Controller
             }
             $account->save();
         }
+
+        // Check budget limits for all transactions (income and expense)
+        $this->checkAndUpdateBudgets($user->id, $validated['category_id'], $validated['amount'], $validated['date'], $validated['type']);
 
         // Create notifications using NotificationService
         $notificationService = new NotificationService();
@@ -220,6 +229,12 @@ class TransactionController extends Controller
         // Log the transaction update
         LoggingService::logTransactionUpdate($transaction, $oldValues, $newValues);
         
+        // Update budgets for old transaction values (remove old impact)
+        $this->checkAndUpdateBudgets($transaction->user_id, $oldValues['category_id'], $oldValues['amount'], $oldValues['date'], $oldValues['type']);
+        
+        // Update budgets for new transaction values (add new impact)
+        $this->checkAndUpdateBudgets($transaction->user_id, $newValues['category_id'], $newValues['amount'], $newValues['date'], $newValues['type']);
+        
         return redirect()->route('transactions.index')->with('success', 'Transaction updated successfully!');
     }
 
@@ -256,6 +271,9 @@ class TransactionController extends Controller
             }
             $account->save();
         }
+        
+        // Update budgets before deleting the transaction
+        $this->checkAndUpdateBudgets($transaction->user_id, $transaction->category_id, $transaction->amount, $transaction->date, $transaction->type);
         
         $transaction->delete();
         
@@ -667,5 +685,70 @@ class TransactionController extends Controller
                 'message' => 'An error occurred during import: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Check and update budgets for expense transactions
+     */
+    private function checkAndUpdateBudgets($userId, $categoryId, $amount, $transactionDate, $transactionType = 'expense')
+    {
+        // Get active budgets for this user
+        $budgets = Budget::where('user_id', $userId)
+            ->where('is_active', true)
+            ->where(function ($query) use ($categoryId) {
+                $query->whereNull('category_id')
+                      ->orWhere('category_id', $categoryId);
+            })
+            ->get();
+
+        foreach ($budgets as $budget) {
+            // Update spent amount for this budget (now tracks both income and expenses)
+            $budget->updateSpentAmount();
+
+            // Check budget status and create notifications
+            if ($budget->is_over_budget) {
+                $this->createBudgetNotification($userId, $budget, 'exceeded');
+            } elseif ($budget->is_near_limit) {
+                $this->createBudgetNotification($userId, $budget, 'near_limit');
+            }
+            
+            // For income transactions, create positive balance notification
+            if ($transactionType === 'income' && $budget->current_balance > 0) {
+                $this->createBudgetNotification($userId, $budget, 'positive_balance');
+            }
+        }
+    }
+
+    /**
+     * Create budget-related notifications
+     */
+    private function createBudgetNotification($userId, $budget, $type)
+    {
+        $title = '';
+        $message = '';
+        $icon = '';
+
+        switch ($type) {
+            case 'exceeded':
+                $title = 'Budget Exceeded';
+                $message = "Your budget '{$budget->name}' has been exceeded. Spent: {$budget->spent}, Budget: {$budget->amount}";
+                $icon = 'warning';
+                break;
+            case 'near_limit':
+                $title = 'Budget Near Limit';
+                $message = "Your budget '{$budget->name}' is near its limit. Used: " . round($budget->percentage_used, 1) . "%";
+                $icon = 'info';
+                break;
+        }
+
+        // Create notification using NotificationService
+        $notificationService = new NotificationService();
+        $notificationService->createNotification([
+            'user_id' => $userId,
+            'title' => $title,
+            'message' => $message,
+            'icon' => $icon,
+            'type' => 'budget'
+        ]);
     }
 }
