@@ -101,6 +101,22 @@ class TransactionController extends Controller
         // Get the authenticated user
         $user = Auth::user();
 
+        // Budget enforcement: check if user has enough budget before saving expense
+        $isOverBudget = false;
+        $outstandingAmount = 0;
+        
+        if ($validated['type'] === 'expense') {
+            $budget = $this->findUserBudget($user->id, $validated['category_id'], $validated['date']);
+            
+            if ($budget) {
+                $remaining = $budget->amount - $budget->spent;
+                if ($remaining < $validated['amount']) {
+                    $isOverBudget = true;
+                    $outstandingAmount = $validated['amount'] - $remaining;
+                }
+            }
+        }
+
         $transaction = Transaction::create([
             'type' => $validated['type'],
             'amount' => $validated['amount'],
@@ -109,6 +125,8 @@ class TransactionController extends Controller
             'date' => $validated['date'],
             'description' => $validated['description'] ?? '',
             'created_by' => $user->id,
+            'is_over_budget' => $isOverBudget,
+            'outstanding_amount' => $outstandingAmount,
         ]);
 
         // Log the transaction creation
@@ -688,6 +706,36 @@ class TransactionController extends Controller
     }
 
     /**
+     * Find the appropriate budget for a user's transaction
+     */
+    private function findUserBudget($userId, $categoryId, $transactionDate)
+    {
+        return Budget::where('user_id', $userId)
+            ->where('is_active', true)
+            ->where(function ($query) use ($categoryId) {
+                $query->whereNull('category_id')
+                      ->orWhere('category_id', $categoryId);
+            })
+            ->where(function ($query) use ($transactionDate) {
+                $query->where(function ($q) use ($transactionDate) {
+                    $q->where('period', 'monthly')
+                      ->whereMonth('start_date', '=', date('m', strtotime($transactionDate)))
+                      ->whereYear('start_date', '=', date('Y', strtotime($transactionDate)));
+                })
+                ->orWhere(function ($q) use ($transactionDate) {
+                    $q->where('period', 'yearly')
+                      ->whereYear('start_date', '=', date('Y', strtotime($transactionDate)));
+                })
+                ->orWhere(function ($q) use ($transactionDate) {
+                    $q->where('period', 'custom')
+                      ->where('start_date', '<=', $transactionDate)
+                      ->where('end_date', '>=', $transactionDate);
+                });
+            })
+            ->first();
+    }
+
+    /**
      * Check and update budgets for expense transactions
      */
     private function checkAndUpdateBudgets($userId, $categoryId, $amount, $transactionDate, $transactionType = 'expense')
@@ -702,8 +750,7 @@ class TransactionController extends Controller
             ->get();
 
         foreach ($budgets as $budget) {
-            // Update spent amount for this budget (now tracks both income and expenses)
-            $budget->updateSpentAmount();
+            // Spent amount is now calculated dynamically, no need to update manually
 
             // Check budget status and create notifications
             if ($budget->is_over_budget) {
