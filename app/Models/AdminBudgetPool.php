@@ -28,7 +28,7 @@ class AdminBudgetPool extends Model
             return self::firstOrCreate([], [
                 'total_allocated' => 0,
                 'total_budget' => 0,
-                'available_funds' => 0,
+                'available_funds' => 0, // Will be calculated dynamically
                 'description' => 'Admin budget pool for user allocations'
             ]);
         } catch (\Exception $e) {
@@ -37,6 +37,14 @@ class AdminBudgetPool extends Model
             ]);
             throw new \Exception('Failed to initialize admin budget pool: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Get available funds dynamically (total_budget - total_allocated)
+     */
+    public function getAvailableFundsAttribute()
+    {
+        return max(0, $this->total_budget - $this->total_allocated);
     }
 
     /**
@@ -57,7 +65,7 @@ class AdminBudgetPool extends Model
         }
 
         $this->total_allocated += $amount;
-        $this->available_funds -= $amount;
+        // available_funds is calculated dynamically, do not set manually
         $this->save();
 
         return true;
@@ -69,7 +77,7 @@ class AdminBudgetPool extends Model
     public function returnBudget($amount)
     {
         $this->total_allocated -= $amount;
-        $this->available_funds += $amount;
+        // available_funds is calculated dynamically, do not set manually
         $this->save();
 
         return true;
@@ -85,7 +93,7 @@ class AdminBudgetPool extends Model
         }
 
         $this->total_budget += $amount;
-        $this->available_funds += $amount;
+        // available_funds is calculated dynamically, do not set manually
         
         if (!$this->save()) {
             throw new \Exception('Failed to save admin budget pool');
