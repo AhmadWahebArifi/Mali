@@ -31,7 +31,7 @@
             <h1 class="font-h1 text-h1 text-on-surface">Edit Account</h1>
             <p class="font-body-md text-body-sm text-on-surface-variant">Update your account details.</p>
         </div>
-        <a href="{{ route('accounts.index') }}" class="flex items-center gap-2 px-4 py-2 border border-outline-variant bg-white text-on-surface rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors">
+        <a href="{{ route('admin.accounts.index') }}" class="flex items-center gap-2 px-4 py-2 border border-outline-variant bg-white text-on-surface rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors">
             <span class="material-symbols-outlined text-sm" data-icon="arrow_back">arrow_back</span>
             Back to Accounts
         </a>
@@ -39,7 +39,7 @@
     
     <!-- Edit Account Form -->
     <div class="bg-white rounded-xl border border-outline-variant p-6 md:p-8 max-w-2xl">
-        <form id="editAccountForm" method="POST" action="{{ route('accounts.update', $account->id) }}">
+        <form id="editAccountForm" method="POST" action="{{ route('admin.accounts.update', $account->id) }}">
             @csrf
             @method('PUT')
 
@@ -89,7 +89,7 @@
                         <span class="material-symbols-outlined" data-icon="save">save</span>
                         Save Changes
                     </button>
-                    <a href="{{ route('accounts.index') }}" class="px-6 py-3 border border-outline-variant bg-white text-on-surface rounded-xl font-bold hover:bg-gray-50 transition-colors">
+                    <a href="{{ route('admin.accounts.index') }}" class="px-6 py-3 border border-outline-variant bg-white text-on-surface rounded-xl font-bold hover:bg-gray-50 transition-colors">
                         Cancel
                     </a>
                 </div>
@@ -108,7 +108,7 @@ document.getElementById('editAccountForm').addEventListener('submit', function(e
 
     const formData = new FormData(this);
 
-    fetch('{{ route('accounts.update', $account->id) }}', {
+    fetch('{{ route('admin.accounts.update', $account->id) }}', {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -123,7 +123,7 @@ document.getElementById('editAccountForm').addEventListener('submit', function(e
     .then(({ ok, status, data }) => {
         if (ok && data.success) {
             FinTrackAlert.success('Success!', data.message).then(() => {
-                window.location.href = '{{ route('accounts.index') }}';
+                window.location.href = '{{ route('admin.accounts.index') }}';
             });
             return;
         }

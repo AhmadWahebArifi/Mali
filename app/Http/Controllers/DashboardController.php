@@ -21,10 +21,13 @@ class DashboardController extends Controller
         // User-based filtering - non-admins can only see their own data
         $isAdmin = Auth::user()->email === 'admin@mali.com';
         
-        // Calculate total balance from the logged-in user's accounts
-        // (Admin dashboard should not be inflated by other users' account balances.)
-        $accountQuery = Account::query()->where('user_id', Auth::id());
-        $totalBalance = $accountQuery->sum('balance');
+        // Calculate global net worth across all users
+        $globalAccountQuery = Account::query();
+        $globalTotalBalance = $globalAccountQuery->sum('balance');
+        
+        // Calculate logged-in user's individual balance
+        $userAccountQuery = Account::query()->where('user_id', Auth::id());
+        $userTotalBalance = $userAccountQuery->sum('balance');
         
         // Get budget data for the logged-in user only
         $budgets = Budget::with('category', 'user')
@@ -34,21 +37,29 @@ class DashboardController extends Controller
 
                 
         // Calculate totals
-        $totalBalance = $accountQuery->sum('balance'); // Actual cash on hand
+        $totalBalance = $userTotalBalance; // User's actual cash on hand
         $totalBudgetAmount = $budgets->sum('amount');
         $totalBudgetBalance = $budgets->sum('current_balance'); // Now uses dynamic accessor
         
-        // Total Net Worth should be actual cash (account balances) 
-        // Budget allocations are not actual cash, they're spending limits
-        $totalNetWorth = $totalBalance;
+        // Total Net Worth should be global across all users
+        $totalNetWorth = $globalTotalBalance; // Global net worth across all users
         
         // Debug logging
         \Log::info('Dashboard Debug', [
+            'logged_in_user_id' => Auth::id(),
+            'logged_in_user_name' => Auth::user()->first_name . ' ' . Auth::user()->last_name,
+            'logged_in_user_email' => Auth::user()->email,
+            'is_admin' => $isAdmin,
+            'globalTotalBalance' => $globalTotalBalance,
+            'userTotalBalance' => $userTotalBalance,
             'totalBalance' => $totalBalance,
             'totalBudgetAmount' => $totalBudgetAmount,
             'totalBudgetBalance' => $totalBudgetBalance,
             'totalNetWorth' => $totalNetWorth,
-            'budgets_count' => $budgets->count()
+            'budgets_count' => $budgets->count(),
+            'user_accounts' => Account::where('user_id', Auth::id())->get()->map(function($a) {
+                return ['name' => $a->name, 'balance' => $a->balance];
+            })->toArray()
         ]);
         
         // Calculate monthly income and expenses (from transactions)
@@ -70,9 +81,10 @@ class DashboardController extends Controller
             ->whereYear('date', $currentYear)
             ->sum('amount');
         
-        // Get accounts for display (logged-in user's accounts only)
-        $accounts = Account::where('user_id', Auth::id())
-            ->orderBy('balance', 'desc')
+        // Get accounts for display (global accounts that all users share)
+        $accounts = Account::whereIn('name', ['Cash on Hand', 'HesabPay'])
+            ->whereNull('user_id')
+            ->orderBy('name')
             ->get();
         
         // Get recent transactions (user's transactions or all for admin)

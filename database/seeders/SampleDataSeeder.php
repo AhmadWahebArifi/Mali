@@ -15,15 +15,7 @@ class SampleDataSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create essential accounts only (no demo data)
-        $accounts = [
-            ['name' => 'Cash on Hand', 'balance' => 0],
-            ['name' => 'HesabPay', 'balance' => 0],
-        ];
-
-        foreach ($accounts as $accountData) {
-            Account::firstOrCreate(['name' => $accountData['name']], $accountData);
-        }
+        // Note: Global accounts (Cash on Hand, HesabPay) are created by GlobalAccountsSeeder
 
         // Create essential categories for real use
         $categories = [

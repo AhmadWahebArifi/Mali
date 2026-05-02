@@ -126,12 +126,8 @@ class BudgetController extends Controller
         // Allocate from admin budget pool
         $adminBudgetPool->allocateBudget($request->amount, "Budget allocated to {$budget->user->first_name} {$budget->user->last_name}: {$budget->name}");
 
-        if ($isAllocatingToOtherUser) {
-            // AdminBudgetPool is the source of funds for user allocations
-            // Credit the allocated amount to the user's account so their net worth increases
-            $targetAccount->balance += $request->amount;
-            $targetAccount->save();
-        }
+        // Budget allocations do NOT increase user net worth
+        // Budgets are spending limits, not actual money
 
         // Update spent amount (skip for now to avoid timeout)
         // $budget->updateSpentAmount();
@@ -271,7 +267,7 @@ class BudgetController extends Controller
             $account = Account::findOrFail($request->account_id);
             
             // Add funds to the account
-            $account->balance += $request->amount;
+            $account->balance = round($account->balance + $request->amount, 2);
             $account->save();
 
             // Add funds to admin budget pool

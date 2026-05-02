@@ -24,7 +24,7 @@ class TransactionController extends Controller
             return redirect()->route('login');
         }
         
-        $query = Transaction::with(['account', 'category']);
+        $query = Transaction::with(['account', 'category', 'creator']);
         
         // User-based filtering - non-admins can only see their own transactions
         $isAdmin = Auth::user()->email === 'admin@mali.com';
@@ -136,9 +136,9 @@ class TransactionController extends Controller
         $account = Account::find($validated['account_id']);
         if ($account) {
             if ($validated['type'] === 'income') {
-                $account->balance += $validated['amount'];
+                $account->balance = round($account->balance + $validated['amount'], 2);
             } else {
-                $account->balance -= $validated['amount'];
+                $account->balance = round($account->balance - $validated['amount'], 2);
             }
             $account->save();
         }
@@ -283,9 +283,9 @@ class TransactionController extends Controller
         $account = Account::find($transaction->account_id);
         if ($account) {
             if ($transaction->type === 'income') {
-                $account->balance -= $transaction->amount;
+                $account->balance = round($account->balance - $transaction->amount, 2);
             } else {
-                $account->balance += $transaction->amount;
+                $account->balance = round($account->balance + $transaction->amount, 2);
             }
             $account->save();
         }
@@ -644,9 +644,9 @@ class TransactionController extends Controller
 
                     // Update account balance
                     if ($type === 'income') {
-                        $account->balance += $amount;
+                        $account->balance = round($account->balance + $amount, 2);
                     } else {
-                        $account->balance -= $amount;
+                        $account->balance = round($account->balance - $amount, 2);
                     }
                     $account->save();
 
@@ -790,12 +790,9 @@ class TransactionController extends Controller
 
         // Create notification using NotificationService
         $notificationService = new NotificationService();
-        $notificationService->createNotification([
-            'user_id' => $userId,
-            'title' => $title,
-            'message' => $message,
+        $notificationService->createNotification($userId, $title, $message, $type, [
             'icon' => $icon,
-            'type' => 'budget'
+            'budget_id' => $budget->id
         ]);
     }
 }

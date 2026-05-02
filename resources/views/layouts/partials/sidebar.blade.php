@@ -15,10 +15,12 @@
             <span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
             Dashboard
         </a>
-        <a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200 ease-in-out font-medium text-sm {{ request()->routeIs('accounts.*') ? 'bg-gray-100 dark:bg-gray-800' : '' }}" href="{{ route('accounts.index') }}">
+        @if(auth()->user()->email === 'admin@mali.com')
+        <a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200 ease-in-out font-medium text-sm {{ request()->routeIs('admin.accounts.*') ? 'bg-gray-100 dark:bg-gray-800' : '' }}" href="{{ route('admin.accounts.index') }}">
             <span class="material-symbols-outlined" data-icon="account_balance">account_balance</span>
             Accounts
         </a>
+        @endif
         <a class="flex items-center gap-3 px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200 ease-in-out font-medium text-sm {{ request()->routeIs('transactions.*') ? 'bg-gray-100 dark:bg-gray-800' : '' }}" href="{{ route('transactions.index') }}">
             <span class="material-symbols-outlined" data-icon="swap_horiz">swap_horiz</span>
             Transactions

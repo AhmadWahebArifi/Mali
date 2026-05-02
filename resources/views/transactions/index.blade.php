@@ -103,6 +103,7 @@
                         <th class="py-4 px-4 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Description</th>
                         <th class="py-4 px-4 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Category</th>
                         <th class="py-4 px-4 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Account</th>
+                        <th class="py-4 px-4 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">User</th>
                         <th class="py-4 px-4 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider text-right">Amount</th>
                         <th class="py-4 px-6 w-10"></th>
                     </tr>
@@ -130,6 +131,12 @@
                             <div class="flex items-center gap-2">
                                 <span class="material-symbols-outlined text-base text-primary" data-icon="account_balance">account_balance</span>
                                 <span class="text-xs font-medium text-on-surface-variant">{{ $transaction->account->name }}</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base text-outline" data-icon="person">person</span>
+                                <span class="text-xs font-medium text-on-surface-variant">{{ $transaction->creator->first_name }} {{ $transaction->creator->last_name }}</span>
                             </div>
                         </td>
                         <td class="py-4 px-4 text-right">

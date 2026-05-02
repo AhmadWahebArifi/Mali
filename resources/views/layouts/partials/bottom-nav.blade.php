@@ -4,10 +4,12 @@
         <span class="material-symbols-outlined" data-icon="home">home</span>
         <span class="text-[10px] font-semibold uppercase tracking-wider">Home</span>
     </a>
-    <a href="{{ route('accounts.index') }}" class="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 scale-95 active:scale-90 transition-transform {{ request()->routeIs('accounts.*') ? 'text-blue-600 dark:text-blue-400' : '' }}">
-        <span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
-        <span class="text-[10px] font-semibold uppercase tracking-wider">Accounts</span>
+    @if(auth()->user()->email === 'admin@mali.com')
+    <a href="{{ route('admin.accounts.index') }}" class="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 scale-95 active:scale-90 transition-transform {{ request()->routeIs('admin.accounts.*') ? 'text-blue-600 dark:text-blue-400' : '' }}">
+        <span class="material-symbols-outlined text-lg" data-icon="account_balance">account_balance</span>
+        <span class="text-xs mt-1">Accounts</span>
     </a>
+    @endif
     <button onclick="openAddTransactionModal()" class="flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/30 rounded-xl p-1 scale-95 active:scale-90 transition-transform">
         <span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
         <span class="text-[10px] font-semibold uppercase tracking-wider">Add</span>

@@ -57,7 +57,6 @@ Route::delete('/students/delete/{id}', [StudentController::class, 'delete'])->na
 // Financial Management Routes
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::resource('categories', CategoryController::class);
-Route::resource('accounts', AccountController::class);
 Route::resource('transactions', TransactionController::class);
 Route::get('/transactions/export/csv', [TransactionController::class, 'exportCsv'])->name('transactions.export.csv');
 Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
@@ -77,6 +76,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/users/{user}/approve', [App\Http\Controllers\Admin\UserManagementController::class, 'approve'])->name('users.approve');
     Route::post('/users/{user}/reject', [App\Http\Controllers\Admin\UserManagementController::class, 'reject'])->name('users.reject');
     Route::delete('/users/{user}', [App\Http\Controllers\Admin\UserManagementController::class, 'destroy'])->name('users.destroy');
+    Route::resource('accounts', AccountController::class);
 });
 
 // Additional Routes

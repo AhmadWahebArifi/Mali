@@ -35,14 +35,14 @@
             </div>
         </div>
         
-        <a href="{{ route('accounts.create') }}" class="bg-white border border-outline-variant p-6 rounded-xl flex flex-col justify-center items-center gap-3 shadow-sm group hover:border-primary cursor-pointer transition-all hover:bg-gray-50" onclick="console.log('Create account clicked');">
+        <a href="{{ route('admin.accounts.create') }}" class="bg-white border border-outline-variant p-6 rounded-xl flex flex-col justify-center items-center gap-3 shadow-sm group hover:border-primary cursor-pointer transition-all hover:bg-gray-50" onclick="console.log('Create account clicked');">
             <div class="w-12 h-12 bg-primary-container rounded-full flex items-center justify-center text-on-primary-container group-hover:scale-110 transition-transform">
                 <span class="material-symbols-outlined text-2xl">add</span>
             </div>
             <p class="font-label-caps text-label-caps text-primary">ADD NEW ACCOUNT</p>
         </a>
         
-        <a href="{{ route('accounts.create') }}" class="md:col-span-2 bg-gradient-to-br from-primary to-primary-fixed-variant p-6 rounded-xl text-on-primary flex flex-col justify-between shadow-lg relative overflow-hidden hover:from-primary/90 hover:to-primary-fixed-variant/90 transition-all">
+        <a href="{{ route('admin.accounts.create') }}" class="md:col-span-2 bg-gradient-to-br from-primary to-primary-fixed-variant p-6 rounded-xl text-on-primary flex flex-col justify-between shadow-lg relative overflow-hidden hover:from-primary/90 hover:to-primary-fixed-variant/90 transition-all">
             <div class="relative z-10">
                 <p class="font-label-caps text-label-caps opacity-80">QUICK TIP</p>
                 <p class="font-body-md text-body-md mt-2 max-w-xs">Connecting your high-interest savings account could increase your projected annual yield by $120.</p>
@@ -96,7 +96,7 @@
         @endforelse
         
         <!-- Empty State / Add Card -->
-        <a href="{{ route('accounts.create') }}" class="border-2 border-dashed border-outline-variant rounded-xl p-6 flex flex-col items-center justify-center gap-4 hover:border-primary hover:bg-surface-container-low cursor-pointer transition-all group hover:bg-gray-50">
+        <a href="{{ route('admin.accounts.create') }}" class="border-2 border-dashed border-outline-variant rounded-xl p-6 flex flex-col items-center justify-center gap-4 hover:border-primary hover:bg-surface-container-low cursor-pointer transition-all group hover:bg-gray-50">
             <div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-outline group-hover:text-primary">
                 <span class="material-symbols-outlined text-3xl">add</span>
             </div>
@@ -158,7 +158,7 @@ function editAccount(id) {
             formHtml += `
                 <div style="padding:10px;background:#f5f5f5;border-radius:6px;margin-bottom:14px">
                     <div style="font-weight:600;margin-bottom:4px">Current Balance</div>
-                    <div style="font-size:18px;color:#333">$${parseFloat(account.balance ?? 0).toFixed(2)}</div>
+                    <div style="font-size:18px;color:#333">$${Math.round((account.balance ?? 0) * 100) / 100}</div>
                     <div style="font-size:12px;color:#666;margin-top:4px">Only administrators can modify account balances.</div>
                 </div>
             `;

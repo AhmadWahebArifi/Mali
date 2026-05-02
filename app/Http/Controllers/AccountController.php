@@ -11,14 +11,28 @@ use Illuminate\Support\Facades\Auth;
 class AccountController extends Controller
 {
     /**
+     * Check if user is admin and redirect if not
+     */
+    private function checkAdminAccess()
+    {
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+        
+        if (Auth::user()->email !== 'admin@mali.com') {
+            return redirect()->route('dashboard')->with('error', 'Access denied. Admin only.');
+        }
+        
+        return null;
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        // Ensure user is authenticated
-        if (!Auth::check()) {
-            return redirect()->route('login');
-        }
+        $adminCheck = $this->checkAdminAccess();
+        if ($adminCheck) return $adminCheck;
         
         $isAdmin = Auth::user()->email === 'admin@mali.com';
         
@@ -40,6 +54,9 @@ class AccountController extends Controller
      */
     public function create()
     {
+        $adminCheck = $this->checkAdminAccess();
+        if ($adminCheck) return $adminCheck;
+        
         return view('accounts.create');
     }
 
@@ -48,6 +65,9 @@ class AccountController extends Controller
      */
     public function store(Request $request)
     {
+        $adminCheck = $this->checkAdminAccess();
+        if ($adminCheck) return $adminCheck;
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:accounts,name,NULL,id,user_id,' . Auth::id(),
             'balance' => 'required|numeric|min:0',
@@ -70,7 +90,7 @@ class AccountController extends Controller
             ]);
         }
 
-        return redirect()->route('accounts.index')
+        return redirect()->route('admin.accounts.index')
             ->with('success', 'Account created successfully!');
     }
 
@@ -88,7 +108,7 @@ class AccountController extends Controller
             ]);
         }
 
-        return redirect()->route('accounts.index');
+        return redirect()->route('admin.accounts.index');
     }
 
     /**
@@ -96,6 +116,9 @@ class AccountController extends Controller
      */
     public function edit(string $id)
     {
+        $adminCheck = $this->checkAdminAccess();
+        if ($adminCheck) return $adminCheck;
+        
         $account = Account::findOrFail($id);
 
         return view('accounts.edit', compact('account'));
@@ -106,6 +129,9 @@ class AccountController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        $adminCheck = $this->checkAdminAccess();
+        if ($adminCheck) return $adminCheck;
+        
         $account = Account::findOrFail($id);
         
         // Check if user is admin for balance changes
@@ -166,6 +192,9 @@ class AccountController extends Controller
      */
     public function destroy(string $id)
     {
+        $adminCheck = $this->checkAdminAccess();
+        if ($adminCheck) return $adminCheck;
+        
         $account = Account::findOrFail($id);
         
         // Check if account has transactions
