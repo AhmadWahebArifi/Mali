@@ -82,7 +82,7 @@
                     <option value="">All Accounts</option>
                     @foreach($accounts as $account)
                     <option value="{{ $account->id }}" {{ old('account_id') == $account->id ? 'selected' : '' }}>
-                        {{ $account->name }} (Balance: {{ \App\Helpers\FormatHelper::currency($account->balance) }})
+                        {{ $account->name }} - {{ $account->user ? $account->user->first_name : 'Unknown' }} (Balance: {{ \App\Helpers\FormatHelper::currency($account->balance) }})
                     </option>
                     @endforeach
                 </select>
@@ -204,8 +204,43 @@
 
 @push('scripts')
 <script>
-// Show/hide custom date range based on period selection
 document.addEventListener('DOMContentLoaded', function() {
+    const userSelect = document.getElementById('user_id');
+    const accountSelect = document.getElementById('account_id');
+    
+    // Store original accounts data
+    const originalAccounts = Array.from(accountSelect.options).slice(1); // Skip first "All Accounts" option
+    
+    userSelect.addEventListener('change', function() {
+        const selectedUserId = this.value;
+        
+        // Clear current options (except first one)
+        while (accountSelect.options.length > 1) {
+            accountSelect.remove(1);
+        }
+        
+        if (selectedUserId === '') {
+            // If no user selected, show all accounts
+            originalAccounts.forEach(option => {
+                accountSelect.add(option.cloneNode(true));
+            });
+        } else {
+            // Filter accounts for selected user - show standard account types
+            const standardAccounts = [
+                { name: 'Cash on Hand', text: 'Cash on Hand (Balance: $0.00)' },
+                { name: 'HesabPay', text: 'HesabPay (Balance: $0.00)' }
+            ];
+            
+            standardAccounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = ''; // Let BudgetController handle account creation
+                option.textContent = account.text;
+                accountSelect.add(option);
+            });
+        }
+    });
+    
+    // Show/hide custom date range based on period selection
     const periodRadios = document.querySelectorAll('input[name="period"]');
     const customDateRange = document.getElementById('customDateRange');
     
@@ -218,59 +253,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Add event listeners to period radios
     periodRadios.forEach(radio => {
         radio.addEventListener('change', toggleCustomDateRange);
     });
     
-    // Initial state
+    // Initialize state
     toggleCustomDateRange();
-    
-    // Handle form submission with Sweet Alert
-    const budgetForm = document.querySelector('form[action="{{ route("budgets.store") }}"]');
-    if (budgetForm) {
-        budgetForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            if (typeof BawarFinTrackAlert === 'undefined') {
-                alert('BawarFinTrackAlert not loaded. Please refresh.');
-                return;
-            }
-            
-            BawarFinTrackAlert.loading('Assigning budget...');
-            
-            const formData = new FormData(this);
-            
-            fetch(this.action, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Accept': 'application/json'
-                },
-                body: formData
-            })
-            .then(async response => {
-                const json = await response.json().catch(() => ({}));
-                return { ok: response.ok, status: response.status, json };
-            })
-            .then(({ ok, status, json }) => {
-                if (ok && json.success) {
-                    BawarFinTrackAlert.success('Success!', json.message || 'Budget assigned successfully!').then(() => {
-                        window.location.href = '{{ route("budgets.index") }}';
-                    });
-                } else if (status === 422 && json.errors) {
-                    // Handle validation errors
-                    const firstField = Object.keys(json.errors)[0];
-                    const firstError = firstField ? json.errors[firstField][0] : 'Validation error';
-                    BawarFinTrackAlert.error('Validation Error', firstError);
-                } else {
-                    BawarFinTrackAlert.error('Error', json.message || 'Failed to assign budget');
-                }
-            })
-            .catch(() => {
-                BawarFinTrackAlert.error('Error', 'Failed to assign budget. Please try again.');
-            });
-        });
-    }
 });
 </script>
 @endpush

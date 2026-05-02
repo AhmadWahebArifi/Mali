@@ -48,7 +48,9 @@ class BudgetController extends Controller
         $users = User::where('is_approved', true)
                     ->get();
         $categories = Category::orderBy('name')->get();
-        $accounts = Account::orderBy('name')->get();
+        $accounts = Account::whereIn('name', ['Cash on Hand', 'HesabPay'])
+            ->orderBy('name')
+            ->get();
         
         return view('budgets.create', compact('users', 'categories', 'accounts'));
     }

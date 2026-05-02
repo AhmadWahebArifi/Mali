@@ -64,7 +64,7 @@ class AdminBudgetPool extends Model
             throw new \Exception('Insufficient funds in admin budget pool');
         }
 
-        $this->total_allocated += $amount;
+        $this->total_allocated = round($this->total_allocated + $amount, 2);
         // available_funds is calculated dynamically, do not set manually
         $this->save();
 
@@ -76,7 +76,7 @@ class AdminBudgetPool extends Model
      */
     public function returnBudget($amount)
     {
-        $this->total_allocated -= $amount;
+        $this->total_allocated = round($this->total_allocated - $amount, 2);
         // available_funds is calculated dynamically, do not set manually
         $this->save();
 
@@ -92,7 +92,7 @@ class AdminBudgetPool extends Model
             throw new \Exception('Amount must be greater than 0');
         }
 
-        $this->total_budget += $amount;
+        $this->total_budget = round($this->total_budget + $amount, 2);
         // available_funds is calculated dynamically, do not set manually
         
         if (!$this->save()) {

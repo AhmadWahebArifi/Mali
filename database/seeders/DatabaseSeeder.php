@@ -29,6 +29,13 @@ class DatabaseSeeder extends Seeder
             'last_name' => 'Arifi',
             'email' => 'test@example.com',
         ]);
+        
+        User::factory()->create([
+            'first_name' => 'Ismail',
+            'last_name' => 'Ahmadi',
+            'email' => 'ismail@mali.com',
+            'password' => bcrypt('12341234'),
+        ]);
         $this->call(JobSeeder::class);
     }
 }
