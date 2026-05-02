@@ -13,12 +13,16 @@ class Transaction extends Model
         'category_id',
         'description',
         'date',
-        'created_by'
+        'created_by',
+        'is_over_budget',
+        'outstanding_amount'
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'date' => 'date'
+        'date' => 'date',
+        'is_over_budget' => 'boolean',
+        'outstanding_amount' => 'decimal:2'
     ];
 
     public function account()
