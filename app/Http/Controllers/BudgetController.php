@@ -126,7 +126,9 @@ class BudgetController extends Controller
         // Allocate from admin budget pool
         $adminBudgetPool->allocateBudget($request->amount, "Budget allocated to {$budget->user->first_name} {$budget->user->last_name}: {$budget->name}");
 
-        // Budget allocations do NOT increase user net worth
+        // Transfer actual money to user's account
+        $targetAccount->balance = round($targetAccount->balance + $request->amount, 2);
+        $targetAccount->save();
         // Budgets are spending limits, not actual money
 
         // Update spent amount (skip for now to avoid timeout)
@@ -200,6 +202,13 @@ class BudgetController extends Controller
         // Return funds to admin budget pool
         $adminBudgetPool = \App\Models\AdminBudgetPool::getCurrent();
         $adminBudgetPool->returnBudget($budget->amount);
+
+        // Deduct money from user's account
+        $account = $budget->account;
+        if ($account) {
+            $account->balance = round($account->balance - $budget->amount, 2);
+            $account->save();
+        }
 
         $budget->delete();
 
