@@ -37,13 +37,15 @@ class BudgetController extends Controller
                 ->paginate(10);
         }
 
-        return view('budgets.index', compact('budgets'));
+        // Always fetch the latest AdminBudgetPool for the view
+        $adminPool = $isAdmin ? \App\Models\AdminBudgetPool::getCurrent() : null;
+
+        return view('budgets.index', compact('budgets', 'adminPool'));
     }
 
     public function create()
     {
         $users = User::where('is_approved', true)
-                    ->where('email', '!=', 'admin@mali.com')
                     ->get();
         $categories = Category::orderBy('name')->get();
         $accounts = Account::orderBy('name')->get();
@@ -65,9 +67,12 @@ class BudgetController extends Controller
             'description' => 'nullable|string'
         ]);
 
+        $adminUserId = Auth::id();
+        $isAllocatingToOtherUser = (int) $request->user_id !== (int) $adminUserId;
+
         // Check admin budget pool availability
         $adminBudgetPool = \App\Models\AdminBudgetPool::getCurrent();
-        
+
         if (!$adminBudgetPool->canAllocate($request->amount)) {
             $errorMessage = 'Insufficient funds in admin budget pool. Available: ' . 
                            \App\Helpers\FormatHelper::currency($adminBudgetPool->available_funds) . 
@@ -112,8 +117,6 @@ class BudgetController extends Controller
             'account_id' => $targetAccount->id, // Use the validated target account ID
             'name' => $request->name,
             'amount' => $request->amount,
-            'spent' => 0,
-            'current_balance' => $request->amount, // Initialize with full budget amount
             'period' => $request->period,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
@@ -123,39 +126,15 @@ class BudgetController extends Controller
         // Allocate from admin budget pool
         $adminBudgetPool->allocateBudget($request->amount, "Budget allocated to {$budget->user->first_name} {$budget->user->last_name}: {$budget->name}");
 
-        // Find or create admin's source account (Cash on Hand)
-        $adminAccount = Account::firstOrCreate(
-            ['user_id' => 1, 'name' => 'Cash on Hand'], // Admin user ID is 1
-            ['balance' => 0]
-        );
-
-        // Check if admin has sufficient balance
-        if ($adminAccount->balance < $request->amount) {
-            $errorMessage = 'Insufficient balance in admin Cash on Hand account. Available: ' . 
-                           \App\Helpers\FormatHelper::currency($adminAccount->balance) . 
-                           ', Required: ' . \App\Helpers\FormatHelper::currency($request->amount);
-            
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $errorMessage
-                ], 400);
-            }
-            
-            return redirect()->back()
-                ->withInput()
-                ->withErrors(['amount' => $errorMessage]);
+        if ($isAllocatingToOtherUser) {
+            // AdminBudgetPool is the source of funds for user allocations
+            // Credit the allocated amount to the user's account so their net worth increases
+            $targetAccount->balance += $request->amount;
+            $targetAccount->save();
         }
 
-        // Transfer money: deduct from admin, credit to user
-        $adminAccount->balance -= $request->amount;
-        $adminAccount->save();
-
-        $targetAccount->balance += $request->amount;
-        $targetAccount->save();
-
-        // Update spent amount
-        $budget->updateSpentAmount();
+        // Update spent amount (skip for now to avoid timeout)
+        // $budget->updateSpentAmount();
 
         // Check if request expects JSON (from fetch/AJAX)
         if ($request->expectsJson()) {
@@ -207,9 +186,6 @@ class BudgetController extends Controller
             'description' => $request->description
         ]);
 
-        // Update spent amount
-        $budget->updateSpentAmount();
-
         // Check if request expects JSON (from fetch/AJAX)
         if ($request->expectsJson()) {
             return response()->json([
@@ -257,8 +233,7 @@ class BudgetController extends Controller
 
     public function updateSpent(Budget $budget)
     {
-        $budget->updateSpentAmount();
-        
+        // Spent is now calculated dynamically; just return the current values
         return response()->json([
             'success' => true,
             'spent' => $budget->spent,
