@@ -71,50 +71,72 @@ class Budget extends Model
         return $this->getPercentageUsedAttribute() >= 80;
     }
 
-    public function updateSpentAmount()
+    /**
+     * Dynamically calculate spent amount for this budget
+     */
+    public function getSpentAttribute()
     {
-        if ($this->category_id) {
-            // Calculate expenses for this budget period
-            $expenses = Transaction::where('created_by', $this->user_id)
-                ->where('category_id', $this->category_id)
-                ->where('type', 'expense')
-                ->when($this->period === 'monthly', function ($query) {
-                    $query->whereMonth('date', now()->month)
-                          ->whereYear('date', now()->year);
-                })
-                ->when($this->period === 'yearly', function ($query) {
-                    $query->whereYear('date', now()->year);
-                })
-                ->when($this->period === 'custom' && $this->start_date && $this->end_date, function ($query) {
-                    $query->whereBetween('date', [$this->start_date, $this->end_date]);
-                })
-                ->sum('amount');
-            
-            // Current balance = budget amount - expenses (remaining budget)
-            $this->spent = $expenses;
-            $this->current_balance = $this->amount - $expenses;
-        } else {
-            // For budgets without category (overall budget)
-            // Calculate expenses for this budget period
-            $expenses = Transaction::where('created_by', $this->user_id)
-                ->where('type', 'expense')
-                ->when($this->period === 'monthly', function ($query) {
-                    $query->whereMonth('date', now()->month)
-                          ->whereYear('date', now()->year);
-                })
-                ->when($this->period === 'yearly', function ($query) {
-                    $query->whereYear('date', now()->year);
-                })
-                ->when($this->period === 'custom' && $this->start_date && $this->end_date, function ($query) {
-                    $query->whereBetween('date', [$this->start_date, $this->end_date]);
-                })
-                ->sum('amount');
-            
-            // Current balance = budget amount - expenses (remaining budget)
-            $this->spent = $expenses;
-            $this->current_balance = $this->amount - $expenses;
+        return $this->calculateSpent();
+    }
+
+    /**
+     * Dynamically calculate current balance for this budget
+     */
+    public function getCurrentBalanceAttribute()
+    {
+        return $this->amount - $this->calculateSpent();
+    }
+
+    /**
+     * Core calculation: sum expenses for this budget with proper joins and filters
+     */
+    private function calculateSpent()
+    {
+        $query = Transaction::selectRaw('COALESCE(SUM(transactions.amount), 0) as total')
+            ->join('accounts', 'transactions.account_id', '=', 'accounts.id')
+            ->where('accounts.user_id', $this->user_id)
+            ->where('transactions.type', 'expense')
+            ->where(function ($q) {
+                $q->whereNull('transactions.category_id')
+                  ->orWhere('transactions.category_id', $this->category_id);
+            })
+            ->where(function ($q) {
+                $q->whereNull('transactions.account_id')
+                  ->orWhere('transactions.account_id', $this->account_id);
+            });
+
+        // Apply date filter based on budget period
+        switch ($this->period) {
+            case 'monthly':
+                $query->whereMonth('transactions.date', now()->month)
+                      ->whereYear('transactions.date', now()->year);
+                break;
+            case 'yearly':
+                $query->whereYear('transactions.date', now()->year);
+                break;
+            case 'custom':
+                if ($this->start_date && $this->end_date) {
+                    $query->whereBetween('transactions.date', [$this->start_date, $this->end_date]);
+                }
+                break;
         }
+
         
-        $this->save();
+        // Debug: Log the query and result for troubleshooting
+        \Log::info('Budget calculateSpent debug', [
+            'budget_id' => $this->id,
+            'budget_name' => $this->name,
+            'budget_user_id' => $this->user_id,
+            'budget_category_id' => $this->category_id,
+            'budget_account_id' => $this->account_id,
+            'budget_period' => $this->period,
+            'budget_start_date' => $this->start_date,
+            'budget_end_date' => $this->end_date,
+            'sql' => $query->toSql(),
+            'bindings' => $query->getBindings(),
+            'result' => $query->value('total') ?? 0
+        ]);
+
+        return $query->value('total') ?? 0;
     }
 }
