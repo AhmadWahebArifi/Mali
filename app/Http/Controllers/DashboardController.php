@@ -21,13 +21,13 @@ class DashboardController extends Controller
         // User-based filtering - non-admins can only see their own data
         $isAdmin = Auth::user()->email === 'admin@mali.com';
         
-        // Calculate global net worth across all users
-        $globalAccountQuery = Account::query();
-        $globalTotalBalance = $globalAccountQuery->sum('balance');
+        // Calculate global net worth across all users (sum of all user accounts)
+        $globalTotalBalance = Account::whereIn('name', ['Cash on Hand', 'HesabPay'])->sum('balance');
         
         // Calculate logged-in user's individual balance
-        $userAccountQuery = Account::query()->where('user_id', Auth::id());
-        $userTotalBalance = $userAccountQuery->sum('balance');
+        $userTotalBalance = Account::whereIn('name', ['Cash on Hand', 'HesabPay'])
+            ->where('user_id', Auth::id())
+            ->sum('balance');
         
         // Get budget data for the logged-in user only
         $budgets = Budget::with('category', 'user')
@@ -38,11 +38,17 @@ class DashboardController extends Controller
                 
         // Calculate totals
         $totalBalance = $userTotalBalance; // User's actual cash on hand
-        $totalBudgetAmount = $budgets->sum('amount');
+        
+        // Calculate total budget balance (sum of all remaining budget amounts)
         $totalBudgetBalance = $budgets->sum('current_balance'); // Now uses dynamic accessor
         
         // Total Net Worth should be global across all users
         $totalNetWorth = $globalTotalBalance; // Global net worth across all users
+        
+        $totalBudgetAmount = $budgets->sum('amount');
+        $totalBudgetSpent = $budgets->sum('spent');
+        $totalBudgetRemaining = $totalBudgetAmount - $totalBudgetSpent;
+        $budgetUsagePercentage = $totalBudgetAmount > 0 ? ($totalBudgetSpent / $totalBudgetAmount) * 100 : 0;
         
         // Debug logging
         \Log::info('Dashboard Debug', [
@@ -81,9 +87,9 @@ class DashboardController extends Controller
             ->whereYear('date', $currentYear)
             ->sum('amount');
         
-        // Get accounts for display (global accounts that all users share)
+        // Get accounts for display (user's own accounts)
         $accounts = Account::whereIn('name', ['Cash on Hand', 'HesabPay'])
-            ->whereNull('user_id')
+            ->where('user_id', Auth::id())
             ->orderBy('name')
             ->get();
         

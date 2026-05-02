@@ -92,20 +92,25 @@ class BudgetController extends Controller
 
         // Find or create user's target account FIRST (before creating budget)
         $targetAccount = null;
-        if ($request->filled('account_id')) {
+        if ($request->account_id) {
             $targetAccount = Account::find($request->account_id);
-            if ($targetAccount && $targetAccount->user_id === null) {
-                $targetAccount->user_id = $request->user_id;
-                $targetAccount->save();
-            }
+            // Verify the account belongs to the user
             if ($targetAccount && (int) $targetAccount->user_id !== (int) $request->user_id) {
                 $targetAccount = null;
             }
         }
 
         if (!$targetAccount) {
+            // Create user-specific account based on the category or default to Cash on Hand
+            $category = \App\Models\Category::find($request->category_id);
+            $accountName = 'Cash on Hand'; // Default
+            
+            if ($category && str_contains(strtolower($category->name), 'digital') || str_contains(strtolower($category->name), 'payment')) {
+                $accountName = 'HesabPay';
+            }
+            
             $targetAccount = Account::firstOrCreate(
-                ['user_id' => $request->user_id, 'name' => 'Cash on Hand'],
+                ['user_id' => $request->user_id, 'name' => $accountName],
                 ['balance' => 0]
             );
         }

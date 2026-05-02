@@ -68,7 +68,7 @@
                     </div>
                     <div>
                         <p class="font-body-sm font-semibold text-gray-900">{{ $account->name }}</p>
-                        <p class="text-[11px] text-gray-400">Shared by All Users</p>
+                        <p class="text-[11px] text-gray-400">Your Account</p>
                     </div>
                 </div>
                 <p class="font-data-mono text-gray-900 text-right">

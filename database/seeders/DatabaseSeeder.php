@@ -17,8 +17,8 @@ class DatabaseSeeder extends Seeder
         // Create admin user
         $this->call(AdminSeeder::class);
         
-        // Create global accounts
-        $this->call(GlobalAccountsSeeder::class);
+        // Create user-specific accounts
+        $this->call(UserAccountsSeeder::class);
         
         // Create sample data
         $this->call(SampleDataSeeder::class);
