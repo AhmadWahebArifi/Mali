@@ -31,11 +31,12 @@ class DashboardController extends Controller
             ->where('user_id', Auth::id())
             ->where('is_active', true)
             ->get();
-        
+
+                
         // Calculate totals
         $totalBalance = $accountQuery->sum('balance'); // Actual cash on hand
         $totalBudgetAmount = $budgets->sum('amount');
-        $totalBudgetBalance = $budgets->sum('current_balance');
+        $totalBudgetBalance = $budgets->sum('current_balance'); // Now uses dynamic accessor
         
         // Total Net Worth should be actual cash (account balances) 
         // Budget allocations are not actual cash, they're spending limits
