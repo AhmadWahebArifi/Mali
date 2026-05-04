@@ -257,6 +257,71 @@
     </div>
     @endif
     
+    <!-- Budget Assignments Section -->
+    @if($budgetAssignments->count() > 0)
+    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="font-h2 text-gray-900">Your Budget Assignments</h3>
+                <p class="text-sm text-gray-500">Budgets assigned to you by admin</p>
+            </div>
+            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                {{ $budgetAssignments->count() }} Active
+            </span>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            @foreach($budgetAssignments as $assignment)
+            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-semibold text-gray-900">{{ $assignment->budget->name }}</h4>
+                    <span class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                        {{ $assignment->account->name }}
+                    </span>
+                </div>
+                
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Assigned:</span>
+                        <span class="font-medium">{{ \App\Helpers\FormatHelper::currency($assignment->assigned_amount) }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Spent:</span>
+                        <span class="font-medium text-orange-600">
+                            {{ \App\Helpers\FormatHelper::currency($assignment->spent_amount) }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Remaining:</span>
+                        <span class="font-medium {{ $assignment->remaining_amount > 0 ? 'text-green-600' : 'text-red-600' }}">
+                            {{ \App\Helpers\FormatHelper::currency($assignment->remaining_amount) }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mt-3 pt-3 border-t border-gray-100">
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <span>Assigned: {{ $assignment->assigned_at->format('M j, Y') }}</span>
+                        <span>{{ round((1 - $assignment->remaining_amount / $assignment->assigned_amount) * 100, 1) }}% used</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                        <div class="h-1.5 rounded-full transition-all duration-300 bg-blue-600"
+                             style="width: {{ min(100, (1 - $assignment->remaining_amount / $assignment->assigned_amount) * 100) }}%">
+                        </div>
+                    </div>
+                </div>
+                
+                @if($assignment->assignment_notes)
+                <div class="mt-3 text-xs text-gray-600 bg-gray-50 rounded p-2">
+                    📝 {{ $assignment->assignment_notes }}
+                </div>
+                @endif
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+    
     <!-- Bento Grid - Row 2 -->
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <!-- Activity Chart -->

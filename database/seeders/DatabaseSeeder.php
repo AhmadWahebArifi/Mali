@@ -36,6 +36,5 @@ class DatabaseSeeder extends Seeder
             'email' => 'ismail@mali.com',
             'password' => bcrypt('12341234'),
         ]);
-        $this->call(JobSeeder::class);
     }
 }

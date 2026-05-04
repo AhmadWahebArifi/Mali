@@ -72,28 +72,7 @@
                 @enderror
             </div>
 
-            <!-- Account Selection -->
-            <div class="mb-6">
-                <label for="account_id" class="block text-sm font-medium text-gray-700 mb-2">
-                    Account (Optional)
-                </label>
-                <select id="account_id" name="account_id"
-                        class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 text-gray-900">
-                    <option value="">All Accounts</option>
-                    @foreach($accounts as $account)
-                    <option value="{{ $account->id }}" {{ old('account_id') == $account->id ? 'selected' : '' }}>
-                        {{ $account->name }} - {{ $account->user ? $account->user->first_name : 'Unknown' }} (Balance: {{ \App\Helpers\FormatHelper::currency($account->balance) }})
-                    </option>
-                    @endforeach
-                </select>
-                <p class="mt-1 text-xs text-gray-500">
-                    Leave empty to apply budget to all accounts
-                </p>
-                @error('account_id')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
-
+            
             <!-- Budget Amount -->
             <div class="mb-6">
                 <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">
@@ -205,41 +184,6 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const userSelect = document.getElementById('user_id');
-    const accountSelect = document.getElementById('account_id');
-    
-    // Store original accounts data
-    const originalAccounts = Array.from(accountSelect.options).slice(1); // Skip first "All Accounts" option
-    
-    userSelect.addEventListener('change', function() {
-        const selectedUserId = this.value;
-        
-        // Clear current options (except first one)
-        while (accountSelect.options.length > 1) {
-            accountSelect.remove(1);
-        }
-        
-        if (selectedUserId === '') {
-            // If no user selected, show all accounts
-            originalAccounts.forEach(option => {
-                accountSelect.add(option.cloneNode(true));
-            });
-        } else {
-            // Filter accounts for selected user - show standard account types
-            const standardAccounts = [
-                { name: 'Cash on Hand', text: 'Cash on Hand (Balance: $0.00)' },
-                { name: 'HesabPay', text: 'HesabPay (Balance: $0.00)' }
-            ];
-            
-            standardAccounts.forEach(account => {
-                const option = document.createElement('option');
-                option.value = ''; // Let BudgetController handle account creation
-                option.textContent = account.text;
-                accountSelect.add(option);
-            });
-        }
-    });
-    
     // Show/hide custom date range based on period selection
     const periodRadios = document.querySelectorAll('input[name="period"]');
     const customDateRange = document.getElementById('customDateRange');

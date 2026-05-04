@@ -11,6 +11,7 @@ class Transaction extends Model
         'amount',
         'account_id',
         'category_id',
+        'budget_id',
         'description',
         'date',
         'created_by',

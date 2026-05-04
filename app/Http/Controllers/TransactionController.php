@@ -62,8 +62,10 @@ class TransactionController extends Controller
                              ->orderBy('created_at', 'desc')
                              ->paginate(25);
         
-        // Show all accounts for filtering, but transactions remain user-specific
-        $accounts = Account::orderBy('name')->get();
+        // Both admin and regular users can see Cash on Hand and HesabPay accounts for filtering
+        $accounts = Account::whereIn('name', ['Cash on Hand', 'HesabPay'])
+            ->orderBy('name')
+            ->get();
         $categories = Category::orderBy('name')->get();
         
         $totalTransactions = $query->count();
@@ -76,9 +78,18 @@ class TransactionController extends Controller
      */
     public function create()
     {
-        // Show all accounts to all users for transaction creation
-        // Users can transact on any account, but transactions remain user-specific
-        $accounts = Account::orderBy('name')->get();
+        // Only admin can see Cash on Hand and HesabPay accounts
+        $user = Auth::user();
+        $isAdmin = $user->email === 'admin@mali.com';
+        
+        if ($isAdmin) {
+            $accounts = Account::orderBy('name')->get();
+        } else {
+            // Regular users can see Cash on Hand and HesabPay for transactions
+            $accounts = Account::whereIn('name', ['Cash on Hand', 'HesabPay'])
+                ->orderBy('name')
+                ->get();
+        }
         $categories = Category::orderBy('name')->get();
         
         return view('transactions.create', compact('accounts', 'categories'));
@@ -104,11 +115,13 @@ class TransactionController extends Controller
         // Budget enforcement: check if user has enough budget before saving expense
         $isOverBudget = false;
         $outstandingAmount = 0;
+        $budgetId = null;
         
         if ($validated['type'] === 'expense') {
             $budget = $this->findUserBudget($user->id, $validated['category_id'], $validated['date']);
             
             if ($budget) {
+                $budgetId = $budget->id;
                 $remaining = $budget->amount - $budget->spent;
                 if ($remaining < $validated['amount']) {
                     $isOverBudget = true;
@@ -122,6 +135,7 @@ class TransactionController extends Controller
             'amount' => $validated['amount'],
             'category_id' => $validated['category_id'],
             'account_id' => $validated['account_id'],
+            'budget_id' => $budgetId,
             'date' => $validated['date'],
             'description' => $validated['description'] ?? '',
             'created_by' => $user->id,
@@ -132,7 +146,7 @@ class TransactionController extends Controller
         // Log the transaction creation
         LoggingService::logTransactionCreate($transaction);
 
-        // Update account balance
+        // Update account balance (including Cash on Hand and HesabPay)
         $account = Account::find($validated['account_id']);
         if ($account) {
             if ($validated['type'] === 'income') {
@@ -501,7 +515,11 @@ class TransactionController extends Controller
                 $accounts = Account::all()->keyBy('name');
             } else {
                 $categories = Category::all()->keyBy('name');
-                $accounts = Account::where('user_id', $user->id)->get()->keyBy('name');
+                // Regular users cannot see Cash on Hand and HesabPay accounts
+                $accounts = Account::where('user_id', $user->id)
+                    ->whereNotIn('name', ['Cash on Hand', 'HesabPay'])
+                    ->get()
+                    ->keyBy('name');
             }
 
             $importedCount = 0;

@@ -48,9 +48,15 @@ class BudgetController extends Controller
         $users = User::where('is_approved', true)
                     ->get();
         $categories = Category::orderBy('name')->get();
-        $accounts = Account::whereIn('name', ['Cash on Hand', 'HesabPay'])
-            ->orderBy('name')
-            ->get();
+        
+        // Only admin can see Cash on Hand and HesabPay accounts
+        if (Auth::user()->is_admin) {
+            $accounts = Account::whereIn('name', ['Cash on Hand', 'HesabPay'])
+                ->orderBy('name')
+                ->get();
+        } else {
+            $accounts = collect();
+        }
         
         return view('budgets.create', compact('users', 'categories', 'accounts'));
     }
@@ -60,7 +66,6 @@ class BudgetController extends Controller
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'category_id' => 'nullable|exists:categories,id',
-            'account_id' => 'nullable|exists:accounts,id',
             'name' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0',
             'period' => 'required|in:monthly,yearly,custom',
@@ -92,30 +97,19 @@ class BudgetController extends Controller
                 ->withErrors(['amount' => $errorMessage]);
         }
 
-        // Find or create user's target account FIRST (before creating budget)
-        $targetAccount = null;
-        if ($request->account_id) {
-            $targetAccount = Account::find($request->account_id);
-            // Verify the account belongs to the user
-            if ($targetAccount && (int) $targetAccount->user_id !== (int) $request->user_id) {
-                $targetAccount = null;
-            }
+        // Use shared accounts based on the category or default to Cash on Hand
+        $category = \App\Models\Category::find($request->category_id);
+        $accountName = 'Cash on Hand'; // Default
+        
+        if ($category && str_contains(strtolower($category->name), 'digital') || str_contains(strtolower($category->name), 'payment')) {
+            $accountName = 'HesabPay';
         }
-
-        if (!$targetAccount) {
-            // Create user-specific account based on the category or default to Cash on Hand
-            $category = \App\Models\Category::find($request->category_id);
-            $accountName = 'Cash on Hand'; // Default
-            
-            if ($category && str_contains(strtolower($category->name), 'digital') || str_contains(strtolower($category->name), 'payment')) {
-                $accountName = 'HesabPay';
-            }
-            
-            $targetAccount = Account::firstOrCreate(
-                ['user_id' => $request->user_id, 'name' => $accountName],
-                ['balance' => 0]
-            );
-        }
+        
+        // Find or create shared account (user_id = null for shared accounts)
+        $targetAccount = Account::firstOrCreate(
+            ['name' => $accountName, 'user_id' => null],
+            ['balance' => 0]
+        );
 
         // Create the budget with the CORRECT account_id
         $budget = Budget::create([
@@ -130,13 +124,27 @@ class BudgetController extends Controller
             'description' => $request->description
         ]);
 
+        // Create budget assignment record
+        $budgetAssignment = \App\Models\BudgetAssignment::create([
+            'user_id' => $request->user_id,
+            'budget_id' => $budget->id,
+            'account_id' => $targetAccount->id,
+            'assigned_amount' => $request->amount,
+            'remaining_amount' => $request->amount,
+            'assignment_notes' => $request->description,
+            'assigned_at' => now(),
+            'status' => 'active',
+        ]);
+
         // Allocate from admin budget pool
         $adminBudgetPool->allocateBudget($request->amount, "Budget allocated to {$budget->user->first_name} {$budget->user->last_name}: {$budget->name}");
 
-        // Transfer actual money to user's account
-        $targetAccount->balance = round($targetAccount->balance + $request->amount, 2);
-        $targetAccount->save();
-        // Budgets are spending limits, not actual money
+        // Update Cash on Hand account to show available funds
+        $this->updateCashOnHandBalance();
+
+        // Note: Budgets are spending limits, not actual money
+        // We do NOT transfer money to user's account when assigning budgets
+        // The budget assignment tracks the spending limit separately
 
         // Update spent amount (skip for now to avoid timeout)
         // $budget->updateSpentAmount();
@@ -323,5 +331,27 @@ class BudgetController extends Controller
                 ->withInput()
                 ->withErrors(['amount' => 'Failed to add funds: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Update Cash on Hand account balance to match admin budget pool available funds
+     */
+    private function updateCashOnHandBalance()
+    {
+        // Get admin budget pool
+        $adminPool = \App\Models\AdminBudgetPool::getCurrent();
+        if (!$adminPool) {
+            return;
+        }
+
+        // Get Cash on Hand account
+        $cashAccount = \App\Models\Account::where('name', 'Cash on Hand')->first();
+        if (!$cashAccount) {
+            return;
+        }
+
+        // Update Cash on Hand account to match available funds
+        $cashAccount->balance = $adminPool->available_funds;
+        $cashAccount->save();
     }
 }

@@ -72,25 +72,37 @@ class DashboardController extends Controller
         $currentMonth = now()->month;
         $currentYear = now()->year;
         
-        $transactionQuery = Transaction::query();
+        // Use separate query objects to avoid conflicts
+        $incomeQuery = Transaction::query();
         if (!$isAdmin) {
-            $transactionQuery->where('created_by', Auth::id());
+            $incomeQuery->where('created_by', Auth::id());
         }
         
-        $monthlyIncome = $transactionQuery->where('type', 'income')
+        $monthlyIncome = $incomeQuery->where('type', 'income')
             ->whereMonth('date', $currentMonth)
             ->whereYear('date', $currentYear)
             ->sum('amount');
             
-        $monthlyExpenses = $transactionQuery->where('type', 'expense')
+        $expenseQuery = Transaction::query();
+        if (!$isAdmin) {
+            $expenseQuery->where('created_by', Auth::id());
+        }
+            
+        $monthlyExpenses = $expenseQuery->where('type', 'expense')
             ->whereMonth('date', $currentMonth)
             ->whereYear('date', $currentYear)
             ->sum('amount');
         
-        // Get accounts for display (user's own accounts)
+        // Get accounts for display (both admin and regular users can see Cash on Hand and HesabPay for transactions)
         $accounts = Account::whereIn('name', ['Cash on Hand', 'HesabPay'])
-            ->where('user_id', Auth::id())
             ->orderBy('name')
+            ->get();
+        
+        // Get budget assignments for the logged-in user
+        $budgetAssignments = \App\Models\BudgetAssignment::with(['budget', 'account'])
+            ->where('user_id', Auth::id())
+            ->active()
+            ->orderBy('assigned_at', 'desc')
             ->get();
         
         // Get recent transactions (user's transactions or all for admin)
@@ -154,6 +166,7 @@ class DashboardController extends Controller
             'monthlyIncome',
             'monthlyExpenses',
             'accounts',
+            'budgetAssignments',
             'recentTransactions',
             'monthlyData',
             'budgets',
